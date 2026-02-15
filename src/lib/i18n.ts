@@ -2,7 +2,7 @@ export type Language = 'ru' | 'en' | 'ua';
 
 export const translations: Record<string, Record<Language, string>> = {
   // App name
-  appName: { ru: 'СОБУТЫЛЬНИК', en: 'SOBUTYLNIK', ua: 'СПІВПЛЯШНИК' },
+  appName: { ru: 'СОБУТЫЛЬНИК', en: 'DRINK MATE', ua: 'СПІВПЛЯШНИК' },
   slogan: { ru: 'THE NIGHT OUT COMPANION', en: 'THE NIGHT OUT COMPANION', ua: 'THE NIGHT OUT COMPANION' },
 
   // Navigation
@@ -100,6 +100,23 @@ export const translations: Record<string, Record<Language, string>> = {
   // Events
   createEvent: { ru: 'Создать событие', en: 'Create event', ua: 'Створити подію' },
   eventName: { ru: 'Название', en: 'Name', ua: 'Назва' },
+  profileName: { ru: 'Имя', en: 'Name', ua: 'Ім\'я' },
+  myCity: { ru: 'Мой город', en: 'My city', ua: 'Моє місто' },
+  meetingRequestSent: { ru: 'Запрос на встречу отправлен!', en: 'Meeting request sent!', ua: 'Запит на зустріч надіслано!' },
+  meetingAccepted: { ru: 'Встреча принята!', en: 'Meeting accepted!', ua: 'Зустріч прийнята!' },
+  meetingDeclined: { ru: 'Встреча отклонена', en: 'Meeting declined', ua: 'Зустріч відхилена' },
+  addedToFavorites: { ru: 'Добавлено в избранное!', en: 'Added to favorites!', ua: 'Додано до обраних!' },
+  removedFromFavorites: { ru: 'Удалено из избранного', en: 'Removed from favorites', ua: 'Видалено з обраних' },
+  userBlocked: { ru: 'Пользователь заблокирован', en: 'User blocked', ua: 'Користувача заблоковано' },
+  userUnblocked: { ru: 'Пользователь разблокирован', en: 'User unblocked', ua: 'Користувача розблоковано' },
+  profileSaved: { ru: 'Профиль сохранён!', en: 'Profile saved!', ua: 'Профіль збережено!' },
+  typeMessage: { ru: 'Написать сообщение...', en: 'Type a message...', ua: 'Написати повідомлення...' },
+  send: { ru: 'Отправить', en: 'Send', ua: 'Надіслати' },
+  joinedEvent: { ru: 'Вы присоединились!', en: 'You joined!', ua: 'Ви приєдналися!' },
+  leftEvent: { ru: 'Вы вышли из события', en: 'You left the event', ua: 'Ви вийшли з події' },
+  eventCreated: { ru: 'Событие создано!', en: 'Event created!', ua: 'Подію створено!' },
+  maxParticipants: { ru: 'Макс. участников', en: 'Max participants', ua: 'Макс. учасників' },
+  uploadPhoto: { ru: 'Загрузить фото', en: 'Upload photo', ua: 'Завантажити фото' },
   eventDescription: { ru: 'Описание', en: 'Description', ua: 'Опис' },
   eventDate: { ru: 'Дата', en: 'Date', ua: 'Дата' },
   eventTime: { ru: 'Время', en: 'Time', ua: 'Час' },

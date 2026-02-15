@@ -34,59 +34,40 @@ export default function FilterBar(props: FilterBarProps) {
     setter(arr.includes(item) ? arr.filter(i => i !== item) : [...arr, item]);
   };
 
-  const renderDropdown = (
+  const getDropdownData = (type: DropdownType) => {
+    switch (type) {
+      case 'interests': return { labelKey: 'interests', keys: interestKeys, selected: props.selectedInterests, setter: props.setSelectedInterests };
+      case 'drinks': return { labelKey: 'drinks', keys: drinkKeys, selected: props.selectedDrinks, setter: props.setSelectedDrinks };
+      case 'drinkAmount': return { labelKey: 'drinkAmount', keys: alcoholLevelKeys, selected: props.selectedLevel, setter: props.setSelectedLevel };
+      default: return null;
+    }
+  };
+
+  const renderChip = (
     type: DropdownType,
     labelKey: string,
-    keys: readonly string[],
     selected: string[],
-    setter: (v: string[]) => void
   ) => (
-    <div className="relative">
-      <button
-        onClick={() => toggle(type)}
-        className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs sm:text-sm font-medium border transition-all duration-200 whitespace-nowrap ${
-          selected.length > 0
-            ? 'amber-border-glow text-primary bg-primary/10'
-            : 'border-border hover:border-primary/40 text-muted-foreground hover:text-foreground glass-panel'
-        }`}
-      >
-        {t(labelKey, language)}
-        {selected.length > 0 && (
-          <span className="bg-primary text-primary-foreground rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-bold">
-            {selected.length}
-          </span>
-        )}
-        <ChevronDown size={14} className={`transition-transform ${openDropdown === type ? 'rotate-180' : ''}`} />
-      </button>
-
-      <AnimatePresence>
-        {openDropdown === type && (
-          <motion.div
-            className="absolute top-full mt-2 left-0 z-[60] glass-panel-strong p-3 min-w-[200px] max-h-[300px] overflow-y-auto scrollbar-hide"
-            initial={{ opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-          >
-            <div className="flex flex-col gap-1">
-              {keys.map(key => (
-                <button
-                  key={key}
-                  onClick={() => toggleItem(selected, key, setter)}
-                  className={`px-3 py-2 rounded-lg text-sm text-left transition-all duration-150 ${
-                    selected.includes(key)
-                      ? 'bg-primary/15 text-primary amber-border-glow border'
-                      : 'hover:bg-accent text-foreground border border-transparent'
-                  }`}
-                >
-                  {t(key, language)}
-                </button>
-              ))}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+    <button
+      key={type}
+      onClick={() => toggle(type)}
+      className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs sm:text-sm font-medium border transition-all duration-200 whitespace-nowrap ${
+        selected.length > 0
+          ? 'amber-border-glow text-primary bg-primary/10'
+          : 'border-border hover:border-primary/40 text-muted-foreground hover:text-foreground glass-panel'
+      }`}
+    >
+      {t(labelKey, language)}
+      {selected.length > 0 && (
+        <span className="bg-primary text-primary-foreground rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-bold">
+          {selected.length}
+        </span>
+      )}
+      <ChevronDown size={14} className={`transition-transform ${openDropdown === type ? 'rotate-180' : ''}`} />
+    </button>
   );
+
+  const currentData = openDropdown ? getDropdownData(openDropdown) : null;
 
   return (
     <div className="space-y-3">
@@ -104,11 +85,10 @@ export default function FilterBar(props: FilterBarProps) {
 
       {/* Filter chips */}
       <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-1">
-        {renderDropdown('interests', 'interests', interestKeys, props.selectedInterests, props.setSelectedInterests)}
-        {renderDropdown('drinks', 'drinks', drinkKeys, props.selectedDrinks, props.setSelectedDrinks)}
-        {renderDropdown('drinkAmount', 'drinkAmount', alcoholLevelKeys, props.selectedLevel, props.setSelectedLevel)}
+        {renderChip('interests', 'interests', props.selectedInterests)}
+        {renderChip('drinks', 'drinks', props.selectedDrinks)}
+        {renderChip('drinkAmount', 'drinkAmount', props.selectedLevel)}
 
-        {/* Age input */}
         <input
           type="number"
           value={props.ageFilter}
@@ -119,7 +99,6 @@ export default function FilterBar(props: FilterBarProps) {
           max={99}
         />
 
-        {/* Reset */}
         {hasFilters && (
           <button
             onClick={props.onReset}
@@ -130,17 +109,53 @@ export default function FilterBar(props: FilterBarProps) {
           </button>
         )}
 
-        {/* Results counter */}
         <div className="flex items-center gap-1 px-3 py-2 rounded-xl glass-panel whitespace-nowrap">
           <span className="text-xs text-muted-foreground">{t('resultsFound', language)}:</span>
           <span className="text-sm font-bold amber-glow">{props.resultCount}</span>
         </div>
       </div>
 
-      {/* Click outside overlay */}
-      {openDropdown && (
-        <div className="fixed inset-0 z-[55]" onClick={() => setOpenDropdown(null)} />
-      )}
+      {/* Full-screen overlay dropdown */}
+      <AnimatePresence>
+        {openDropdown && currentData && (
+          <motion.div
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <div className="absolute inset-0 bg-background/60 backdrop-blur-sm" onClick={() => setOpenDropdown(null)} />
+            <motion.div
+              className="relative glass-panel-strong p-6 w-full max-w-lg max-h-[80vh] overflow-y-auto scrollbar-hide"
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-bold amber-glow">{t(currentData.labelKey, language)}</h2>
+                <button onClick={() => setOpenDropdown(null)} className="p-1 rounded-lg hover:bg-accent transition-colors">
+                  <X size={20} />
+                </button>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {currentData.keys.map(key => (
+                  <button
+                    key={key}
+                    onClick={() => toggleItem(currentData.selected, key, currentData.setter)}
+                    className={`px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 border ${
+                      currentData.selected.includes(key)
+                        ? 'amber-border-glow text-primary bg-primary/10'
+                        : 'border-border hover:border-primary/40 hover:bg-accent text-foreground'
+                    }`}
+                  >
+                    {t(key, language)}
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
