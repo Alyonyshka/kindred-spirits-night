@@ -4,6 +4,8 @@ import { useApp } from '@/contexts/AppContext';
 import { t } from '@/lib/i18n';
 import { MockUser } from '@/lib/mockData';
 import { motion, AnimatePresence } from 'framer-motion';
+import { toast } from 'sonner';
+import ChatWindow from '@/components/ChatWindow';
 
 interface UserCardProps {
   user: MockUser;
@@ -13,8 +15,33 @@ export default function UserCard({ user }: UserCardProps) {
   const { language } = useApp();
   const [expanded, setExpanded] = useState(false);
   const [isFav, setIsFav] = useState(false);
+  const [isBlocked, setIsBlocked] = useState(false);
+  const [showChat, setShowChat] = useState(false);
 
   const fullStars = Math.round(user.rating);
+
+  const handleFav = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsFav(!isFav);
+    toast.success(t(isFav ? 'removedFromFavorites' : 'addedToFavorites', language));
+  };
+
+  const handleMeeting = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    toast.success(t('meetingRequestSent', language));
+  };
+
+  const handleBlock = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsBlocked(!isBlocked);
+    toast.success(t(isBlocked ? 'userUnblocked' : 'userBlocked', language));
+  };
+
+  const handleMessage = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setExpanded(false);
+    setShowChat(true);
+  };
 
   return (
     <>
@@ -24,7 +51,6 @@ export default function UserCard({ user }: UserCardProps) {
         layout
         whileHover={{ scale: 1.02 }}
       >
-        {/* Avatar */}
         <div className="flex items-center gap-3 mb-3">
           <div className="w-12 h-12 rounded-full bg-secondary flex items-center justify-center border-2 border-border overflow-hidden">
             {user.avatar ? (
@@ -41,8 +67,6 @@ export default function UserCard({ user }: UserCardProps) {
             <p className="text-xs text-muted-foreground truncate">{user.vibe}</p>
           </div>
         </div>
-
-        {/* Tags */}
         <div className="flex flex-wrap gap-1 mb-2">
           {user.drinks.slice(0, 2).map(d => (
             <span key={d} className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-medium border border-primary/20">
@@ -53,15 +77,9 @@ export default function UserCard({ user }: UserCardProps) {
             {t(user.alcoholLevel, language)}
           </span>
         </div>
-
-        {/* Rating */}
         <div className="flex items-center gap-0.5">
           {[1, 2, 3, 4, 5].map(i => (
-            <Star
-              key={i}
-              size={12}
-              className={i <= fullStars ? 'text-primary fill-primary' : 'text-muted-foreground/30'}
-            />
+            <Star key={i} size={12} className={i <= fullStars ? 'text-primary fill-primary' : 'text-muted-foreground/30'} />
           ))}
           <span className="text-[10px] text-muted-foreground ml-1">{user.rating.toFixed(1)}</span>
         </div>
@@ -83,7 +101,6 @@ export default function UserCard({ user }: UserCardProps) {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.85, opacity: 0 }}
             >
-              {/* Profile content */}
               <div className="flex flex-col items-center text-center mb-4">
                 <div className="w-20 h-20 rounded-full bg-secondary flex items-center justify-center border-2 border-primary/30 avatar-glow mb-3">
                   {user.avatar ? (
@@ -130,43 +147,48 @@ export default function UserCard({ user }: UserCardProps) {
                 </div>
               </div>
 
-              {/* Action buttons */}
               <div className="grid grid-cols-2 gap-2">
                 <button
-                  onClick={(e) => { e.stopPropagation(); setIsFav(!isFav); }}
+                  onClick={handleFav}
                   className={`flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-medium transition-all border ${
                     isFav ? 'bg-primary/15 text-primary border-primary/30' : 'border-border hover:border-primary/30 text-muted-foreground hover:text-primary'
                   }`}
-                  title={t('addToFavorites', language)}
                 >
                   <Heart size={14} className={isFav ? 'fill-primary' : ''} />
                   {t('addToFavorites', language)}
                 </button>
                 <button
+                  onClick={handleMessage}
                   className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-medium border border-border hover:border-primary/30 text-muted-foreground hover:text-primary transition-all"
-                  title={t('sendMessage', language)}
                 >
                   <MessageCircle size={14} />
                   {t('sendMessage', language)}
                 </button>
                 <button
+                  onClick={handleMeeting}
                   className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-medium border border-border hover:border-primary/30 text-muted-foreground hover:text-primary transition-all"
-                  title={t('proposeMeeting', language)}
                 >
                   <Handshake size={14} />
                   {t('proposeMeeting', language)}
                 </button>
                 <button
-                  className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-medium border border-destructive/30 text-muted-foreground hover:text-destructive transition-all"
-                  title={t('blockUser', language)}
+                  onClick={handleBlock}
+                  className={`flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-medium border transition-all ${
+                    isBlocked ? 'border-destructive/30 text-destructive bg-destructive/10' : 'border-destructive/30 text-muted-foreground hover:text-destructive'
+                  }`}
                 >
                   <Ban size={14} />
-                  {t('blockUser', language)}
+                  {t(isBlocked ? 'unblockUser' : 'blockUser', language)}
                 </button>
               </div>
             </motion.div>
           </motion.div>
         )}
+      </AnimatePresence>
+
+      {/* Chat window */}
+      <AnimatePresence>
+        {showChat && <ChatWindow user={user} onClose={() => setShowChat(false)} />}
       </AnimatePresence>
     </>
   );
