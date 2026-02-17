@@ -7,25 +7,47 @@ import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import ChatWindow from '@/components/ChatWindow';
 
-const mockChats = [
+const initialChats = [
   { id: '1', userId: '2', lastMsg: 'Привет! Давай встретимся сегодня?', time: '14:22', unread: 2, online: true },
   { id: '2', userId: '7', lastMsg: 'Слушай, я нашёл крутой бар 🍸', time: '12:05', unread: 0, online: true },
   { id: '3', userId: '6', lastMsg: 'Принято! До встречи', time: 'вчера', unread: 0, online: false },
 ];
 
-const mockInvites = [
+const initialInvites = [
   { id: '1', userId: '3', type: 'meeting' as const },
 ];
+
+const ACCEPTED_INVITES_KEY = 'sobutylnik-accepted-invites';
+const READ_CHATS_KEY = 'sobutylnik-read-chats';
+
+function loadAcceptedInvites(): string[] {
+  try { return JSON.parse(localStorage.getItem(ACCEPTED_INVITES_KEY) || '[]'); } catch { return []; }
+}
+
+function loadReadChats(): string[] {
+  try { return JSON.parse(localStorage.getItem(READ_CHATS_KEY) || '[]'); } catch { return []; }
+}
 
 export default function Messages() {
   const { language } = useApp();
   const [chatUser, setChatUser] = useState<MockUser | null>(null);
-  const [invites, setInvites] = useState(mockInvites);
+  const [invites, setInvites] = useState(() => {
+    const accepted = loadAcceptedInvites();
+    return initialInvites.filter(i => !accepted.includes(i.id));
+  });
+  const [chats, setChats] = useState(() => {
+    const readIds = loadReadChats();
+    return initialChats.map(c => ({ ...c, unread: readIds.includes(c.id) ? 0 : c.unread }));
+  });
   const [expandedUser, setExpandedUser] = useState<MockUser | null>(null);
 
   const getUserById = (userId: string) => mockUsers.find(u => u.id === userId);
 
   const handleAccept = (inviteId: string) => {
+    const accepted = loadAcceptedInvites();
+    if (!accepted.includes(inviteId)) {
+      localStorage.setItem(ACCEPTED_INVITES_KEY, JSON.stringify([...accepted, inviteId]));
+    }
     setInvites(prev => prev.filter(i => i.id !== inviteId));
     toast.success(t('meetingAccepted', language));
   };
@@ -33,6 +55,16 @@ export default function Messages() {
   const handleDecline = (inviteId: string) => {
     setInvites(prev => prev.filter(i => i.id !== inviteId));
     toast.success(t('meetingDeclined', language));
+  };
+
+  const handleOpenChat = (user: MockUser, chatId: string) => {
+    // Mark as read
+    const readIds = loadReadChats();
+    if (!readIds.includes(chatId)) {
+      localStorage.setItem(READ_CHATS_KEY, JSON.stringify([...readIds, chatId]));
+    }
+    setChats(prev => prev.map(c => c.id === chatId ? { ...c, unread: 0 } : c));
+    setChatUser(user);
   };
 
   const handleAvatarClick = (e: React.MouseEvent, user: MockUser) => {
@@ -85,12 +117,12 @@ export default function Messages() {
         <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
           {t('navMessages', language)}
         </h3>
-        {mockChats.map(chat => {
+        {chats.map(chat => {
           const user = getUserById(chat.userId);
           return (
             <div
               key={chat.id}
-              onClick={() => user && setChatUser(user)}
+              onClick={() => user && handleOpenChat(user, chat.id)}
               className="glass-panel p-4 flex items-center gap-3 card-hover cursor-pointer"
             >
               <div className="relative">
