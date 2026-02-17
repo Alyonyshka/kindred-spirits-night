@@ -15,31 +15,44 @@ interface MockEvent {
   participants: number;
   maxParticipants: number;
   drink: string;
-  joined?: boolean;
+  joined: boolean;
 }
 
 const initialEvents: MockEvent[] = [
   {
     id: '1', title: 'Вечер виски', description: 'Дегустация односолодового виски в уютном баре',
     date: '2026-02-20', time: '20:00', location: 'Bar "Whiskey Room", Киев',
-    participants: 4, maxParticipants: 8, drink: 'whiskey'
+    participants: 4, maxParticipants: 8, drink: 'whiskey', joined: false
   },
   {
     id: '2', title: 'Крафтовая пятница', description: 'Пробуем новинки локальных пивоварен',
     date: '2026-02-21', time: '19:00', location: 'Craft Pub, Киев',
-    participants: 6, maxParticipants: 12, drink: 'beer'
+    participants: 6, maxParticipants: 12, drink: 'beer', joined: false
   },
   {
     id: '3', title: 'Коктейльный мастер-класс', description: 'Учимся делать классические коктейли',
     date: '2026-02-22', time: '18:30', location: 'MixBar Academy, Одесса',
-    participants: 2, maxParticipants: 6, drink: 'gin'
+    participants: 2, maxParticipants: 6, drink: 'gin', joined: false
   },
 ];
+
+const JOINED_EVENTS_KEY = 'sobutylnik-joined-events';
+
+function loadJoinedIds(): string[] {
+  try { return JSON.parse(localStorage.getItem(JOINED_EVENTS_KEY) || '[]'); } catch { return []; }
+}
+
+function saveJoinedIds(ids: string[]) {
+  localStorage.setItem(JOINED_EVENTS_KEY, JSON.stringify(ids));
+}
 
 export default function Events() {
   const { language } = useApp();
   const [search, setSearch] = useState('');
-  const [events, setEvents] = useState(initialEvents);
+  const [events, setEvents] = useState(() => {
+    const joinedIds = loadJoinedIds();
+    return initialEvents.map(e => ({ ...e, joined: joinedIds.includes(e.id) }));
+  });
   const [showCreate, setShowCreate] = useState(false);
   const [showParticipants, setShowParticipants] = useState<string | null>(null);
 
@@ -58,18 +71,22 @@ export default function Events() {
   );
 
   const handleJoin = (eventId: string) => {
-    setEvents(prev => prev.map(e => {
-      if (e.id === eventId) {
-        if (e.joined) {
-          toast.success(t('leftEvent', language));
-          return { ...e, joined: false, participants: e.participants - 1 };
+    setEvents(prev => {
+      const updated = prev.map(e => {
+        if (e.id === eventId) {
+          if (e.joined) {
+            toast.success(t('leftEvent', language));
+            return { ...e, joined: false, participants: e.participants - 1 };
+          }
+          if (e.participants >= e.maxParticipants) return e;
+          toast.success(t('joinedEvent', language));
+          return { ...e, joined: true, participants: e.participants + 1 };
         }
-        if (e.participants >= e.maxParticipants) return e;
-        toast.success(t('joinedEvent', language));
-        return { ...e, joined: true, participants: e.participants + 1 };
-      }
-      return e;
-    }));
+        return e;
+      });
+      saveJoinedIds(updated.filter(e => e.joined).map(e => e.id));
+      return updated;
+    });
   };
 
   const handleCreate = () => {
@@ -86,7 +103,11 @@ export default function Events() {
       drink: newDrink,
       joined: true,
     };
-    setEvents(prev => [newEvent, ...prev]);
+    setEvents(prev => {
+      const updated = [newEvent, ...prev];
+      saveJoinedIds(updated.filter(e => e.joined).map(e => e.id));
+      return updated;
+    });
     setShowCreate(false);
     setNewTitle(''); setNewDesc(''); setNewDate(''); setNewTime(''); setNewLocation(''); setNewDrink('beer'); setNewMax('8');
     toast.success(t('eventCreated', language));
