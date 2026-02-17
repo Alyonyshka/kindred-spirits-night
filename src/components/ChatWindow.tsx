@@ -94,15 +94,69 @@ export default function ChatWindow({ user, onClose }: ChatWindowProps) {
     setShowAttach(false);
   };
 
-  const toggleRecording = () => {
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const recordingStartRef = useRef<number>(0);
+  const [recordingTime, setRecordingTime] = useState(0);
+  const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+        mediaRecorderRef.current.stop();
+      }
+    };
+  }, []);
+
+  const toggleRecording = async () => {
     if (isRecording) {
+      mediaRecorderRef.current?.stop();
+      if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
       setIsRecording(false);
-      setMessages(prev => [...prev, {
-        id: Date.now().toString(), text: '🎤 0:03', fromMe: true, time: getTime(), type: 'voice', read: false
-      }]);
     } else {
-      setIsRecording(true);
-      toast(t('recording', language));
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const recorder = new MediaRecorder(stream);
+        mediaRecorderRef.current = recorder;
+        audioChunksRef.current = [];
+        recordingStartRef.current = Date.now();
+        setRecordingTime(0);
+
+        recordingTimerRef.current = setInterval(() => {
+          setRecordingTime(Math.floor((Date.now() - recordingStartRef.current) / 1000));
+        }, 500);
+
+        recorder.ondataavailable = (e) => {
+          if (e.data.size > 0) audioChunksRef.current.push(e.data);
+        };
+
+        recorder.onstop = () => {
+          stream.getTracks().forEach(t => t.stop());
+          if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+          const duration = Math.max(1, Math.floor((Date.now() - recordingStartRef.current) / 1000));
+          const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+          const url = URL.createObjectURL(blob);
+          const mins = Math.floor(duration / 60);
+          const secs = duration % 60;
+          setMessages(prev => [...prev, {
+            id: Date.now().toString(),
+            text: `🎤 ${mins}:${secs.toString().padStart(2, '0')}`,
+            fromMe: true,
+            time: getTime(),
+            type: 'voice',
+            mediaUrl: url,
+            read: false,
+          }]);
+          setRecordingTime(0);
+        };
+
+        recorder.start();
+        setIsRecording(true);
+        toast(t('recording', language));
+      } catch {
+        toast.error('Микрофон недоступен');
+      }
     }
   };
 
@@ -161,9 +215,13 @@ export default function ChatWindow({ user, onClose }: ChatWindowProps) {
                 {msg.type === 'voice' && (
                   <div className="flex items-center gap-2 mb-1">
                     <Mic size={14} />
-                    <div className="h-1 flex-1 rounded-full bg-primary-foreground/30">
-                      <div className="h-full w-2/3 rounded-full bg-primary-foreground/70" />
-                    </div>
+                    {msg.mediaUrl ? (
+                      <audio src={msg.mediaUrl} controls className="h-8 max-w-[180px]" />
+                    ) : (
+                      <div className="h-1 flex-1 rounded-full bg-primary-foreground/30">
+                        <div className="h-full w-2/3 rounded-full bg-primary-foreground/70" />
+                      </div>
+                    )}
                   </div>
                 )}
                 <p>{msg.text}</p>
@@ -263,7 +321,12 @@ export default function ChatWindow({ user, onClose }: ChatWindowProps) {
               onClick={toggleRecording}
               className={`p-2 rounded-lg transition-colors ${isRecording ? 'text-destructive animate-pulse' : 'text-muted-foreground hover:text-primary'}`}
             >
-              {isRecording ? <MicOff size={18} /> : <Mic size={18} />}
+              {isRecording ? (
+                <span className="flex items-center gap-1 text-xs font-mono">
+                  <MicOff size={18} />
+                  {Math.floor(recordingTime / 60)}:{(recordingTime % 60).toString().padStart(2, '0')}
+                </span>
+              ) : <Mic size={18} />}
             </button>
             <button
               onClick={sendMessage}
