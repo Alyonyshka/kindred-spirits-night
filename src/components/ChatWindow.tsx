@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
-import { X, Send, User, Image, Video, Mic, MicOff, Smile, Paperclip } from 'lucide-react';
+import { X, Send, User, Image, Video, Mic, MicOff, Smile, Paperclip, Reply, Edit2 } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
 import { t } from '@/lib/i18n';
 import { MockUser } from '@/lib/mockData';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
+import MessageContextMenu from './MessageContextMenu';
 
 interface ChatWindowProps {
   user: MockUser;
@@ -19,6 +20,8 @@ interface ChatMessage {
   type?: 'text' | 'photo' | 'video' | 'voice';
   mediaUrl?: string;
   read?: boolean;
+  edited?: boolean;
+  replyTo?: { text: string; name: string };
 }
 
 const EMOJI_LIST = ['😀','😂','🤣','😍','🥳','🍻','🍷','🍺','🥂','🍸','🔥','❤️','👍','🎉','🤝','😎','🌙','✨','💪','🙌'];
@@ -33,6 +36,9 @@ export default function ChatWindow({ user, onClose }: ChatWindowProps) {
   const [showEmoji, setShowEmoji] = useState(false);
   const [showAttach, setShowAttach] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [contextMenu, setContextMenu] = useState<{ msg: ChatMessage; x: number; y: number } | null>(null);
+  const [editingMsg, setEditingMsg] = useState<ChatMessage | null>(null);
+  const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const photoRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLInputElement>(null);
@@ -57,13 +63,53 @@ export default function ChatWindow({ user, onClose }: ChatWindowProps) {
 
   const sendMessage = () => {
     if (!input.trim()) return;
-    setMessages(prev => [...prev, { id: Date.now().toString(), text: input.trim(), fromMe: true, time: getTime(), type: 'text', read: false }]);
+    if (editingMsg) {
+      setMessages(prev => prev.map(m => m.id === editingMsg.id ? { ...m, text: input.trim(), edited: true } : m));
+      setEditingMsg(null);
+      setInput('');
+      toast.success(t('msgEdited', language));
+      return;
+    }
+    const newMsg: ChatMessage = {
+      id: Date.now().toString(), text: input.trim(), fromMe: true, time: getTime(), type: 'text', read: false,
+      ...(replyTo ? { replyTo: { text: replyTo.text, name: replyTo.fromMe ? t('navProfile', language) : user.name } } : {}),
+    };
+    setMessages(prev => [...prev, newMsg]);
     setInput('');
     setShowEmoji(false);
-    // Simulate read after 1s
+    setReplyTo(null);
     setTimeout(() => {
       setMessages(prev => prev.map((m, i) => i === prev.length - 1 ? { ...m, read: true } : m));
     }, 1000);
+  };
+
+  const handleMsgContextMenu = (e: React.MouseEvent | React.TouchEvent, msg: ChatMessage) => {
+    e.preventDefault();
+    const pos = 'touches' in e ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : { x: (e as React.MouseEvent).clientX, y: (e as React.MouseEvent).clientY };
+    setContextMenu({ msg, x: pos.x, y: pos.y });
+  };
+
+  const handleDeleteMsg = (id: string) => {
+    setMessages(prev => prev.filter(m => m.id !== id));
+    toast.success(t('msgDeleted', language));
+  };
+
+  const handleEditMsg = (msg: ChatMessage) => {
+    setEditingMsg(msg);
+    setInput(msg.text);
+  };
+
+  const handleReplyMsg = (msg: ChatMessage) => {
+    setReplyTo(msg);
+  };
+
+  const handleCopyMsg = (msg: ChatMessage) => {
+    navigator.clipboard.writeText(msg.text);
+    toast.success(t('msgCopied', language));
+  };
+
+  const handleForwardMsg = (msg: ChatMessage) => {
+    toast.success(t('msgForwarded', language));
   };
 
   const handlePhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -201,11 +247,27 @@ export default function ChatWindow({ user, onClose }: ChatWindowProps) {
         <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3 scrollbar-hide">
           {messages.map(msg => (
             <div key={msg.id} className={`flex ${msg.fromMe ? 'justify-end' : 'justify-start'}`}>
-              <div className={`max-w-[75%] px-4 py-2.5 rounded-2xl text-sm ${
-                msg.fromMe
-                  ? 'bg-primary text-primary-foreground rounded-br-md'
-                  : 'glass-panel border border-border rounded-bl-md'
-              }`}>
+              <div
+                onContextMenu={(e) => handleMsgContextMenu(e, msg)}
+                onTouchStart={(e) => {
+                  const timer = setTimeout(() => handleMsgContextMenu(e, msg), 500);
+                  const clear = () => { clearTimeout(timer); e.currentTarget.removeEventListener('touchend', clear); };
+                  e.currentTarget.addEventListener('touchend', clear);
+                }}
+                className={`max-w-[75%] px-4 py-2.5 rounded-2xl text-sm cursor-pointer select-none ${
+                  msg.fromMe
+                    ? 'bg-primary text-primary-foreground rounded-br-md'
+                    : 'glass-panel border border-border rounded-bl-md'
+                }`}
+              >
+                {msg.replyTo && (
+                  <div className={`mb-1.5 px-2 py-1 rounded-lg border-l-2 text-[11px] ${
+                    msg.fromMe ? 'border-primary-foreground/40 bg-primary-foreground/10' : 'border-primary/40 bg-primary/5'
+                  }`}>
+                    <span className="font-semibold block">{msg.replyTo.name}</span>
+                    <span className="opacity-70 line-clamp-1">{msg.replyTo.text}</span>
+                  </div>
+                )}
                 {msg.type === 'photo' && msg.mediaUrl && (
                   <img src={msg.mediaUrl} alt="photo" className="rounded-xl max-w-full mb-1" />
                 )}
@@ -226,7 +288,7 @@ export default function ChatWindow({ user, onClose }: ChatWindowProps) {
                 )}
                 <p>{msg.text}</p>
                 <span className={`text-[10px] mt-1 block ${msg.fromMe ? 'text-primary-foreground/60' : 'text-muted-foreground'}`}>
-                  {msg.time} {msg.fromMe && (msg.read ? '✓✓' : '✓')}
+                  {msg.time} {msg.edited && `· ${t('msgEdited', language)}`} {msg.fromMe && (msg.read ? '✓✓' : '✓')}
                 </span>
               </div>
             </div>
@@ -294,6 +356,31 @@ export default function ChatWindow({ user, onClose }: ChatWindowProps) {
         <input ref={photoRef} type="file" accept="image/*" className="hidden" onChange={handlePhoto} />
         <input ref={videoRef} type="file" accept="video/*" className="hidden" onChange={handleVideo} />
 
+        {/* Reply/Edit bar */}
+        <AnimatePresence>
+          {(replyTo || editingMsg) && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="glass-panel-strong border-t border-border/50 px-4 py-2 flex items-center gap-2"
+            >
+              {editingMsg ? <Edit2 size={14} className="text-primary shrink-0" /> : <Reply size={14} className="text-primary shrink-0" />}
+              <div className="flex-1 min-w-0">
+                <span className="text-[10px] text-primary font-medium block">
+                  {editingMsg ? t('msgEdit', language) : (replyTo!.fromMe ? t('navProfile', language) : user.name)}
+                </span>
+                <span className="text-xs text-muted-foreground truncate block">
+                  {editingMsg ? editingMsg.text : replyTo!.text}
+                </span>
+              </div>
+              <button onClick={() => { setReplyTo(null); setEditingMsg(null); setInput(''); }} className="p-1 hover:bg-accent rounded">
+                <X size={14} />
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* Input bar */}
         <div className="glass-panel-strong p-3 border-t border-border/50">
           <div className="flex items-center gap-1.5">
@@ -338,6 +425,24 @@ export default function ChatWindow({ user, onClose }: ChatWindowProps) {
           </div>
         </div>
       </div>
+
+      {/* Context menu */}
+      <AnimatePresence>
+        {contextMenu && (
+          <MessageContextMenu
+            fromMe={contextMenu.msg.fromMe}
+            hasMedia={!!(contextMenu.msg.mediaUrl && (contextMenu.msg.type === 'photo' || contextMenu.msg.type === 'video'))}
+            mediaUrl={contextMenu.msg.mediaUrl}
+            position={{ x: contextMenu.x, y: contextMenu.y }}
+            onClose={() => setContextMenu(null)}
+            onDelete={() => handleDeleteMsg(contextMenu.msg.id)}
+            onEdit={() => handleEditMsg(contextMenu.msg)}
+            onReply={() => handleReplyMsg(contextMenu.msg)}
+            onForward={() => handleForwardMsg(contextMenu.msg)}
+            onCopy={() => handleCopyMsg(contextMenu.msg)}
+          />
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
