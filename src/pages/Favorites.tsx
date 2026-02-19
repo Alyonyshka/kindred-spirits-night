@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Heart, User, MessageCircle, Handshake, Ban, Star } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
 import { t } from '@/lib/i18n';
-import { mockUsers, MockUser } from '@/lib/mockData';
+import { mockUsers, MockUser, markFavoritesSeen } from '@/lib/mockData';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import ChatWindow from '@/components/ChatWindow';
@@ -12,6 +12,10 @@ export default function Favorites() {
   const favorites = mockUsers.slice(0, 3);
   const [expandedUser, setExpandedUser] = useState<MockUser | null>(null);
   const [chatUser, setChatUser] = useState<MockUser | null>(null);
+
+  useEffect(() => {
+    markFavoritesSeen();
+  }, []);
 
   const handleMessage = (user: MockUser) => {
     setExpandedUser(null);
