@@ -2,23 +2,17 @@ import { useState } from 'react';
 import { User, Handshake, Ban, MessageCircle, Star } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
 import { t } from '@/lib/i18n';
-import { mockUsers, MockUser } from '@/lib/mockData';
+import { mockUsers, MockUser, initialChats, READ_CHATS_KEY } from '@/lib/mockData';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import ChatWindow from '@/components/ChatWindow';
-
-const initialChats = [
-  { id: '1', userId: '2', lastMsg: 'Привет! Давай встретимся сегодня?', time: '14:22', unread: 2, online: true },
-  { id: '2', userId: '7', lastMsg: 'Слушай, я нашёл крутой бар 🍸', time: '12:05', unread: 0, online: true },
-  { id: '3', userId: '6', lastMsg: 'Принято! До встречи', time: 'вчера', unread: 0, online: false },
-];
 
 const initialInvites = [
   { id: '1', userId: '3', type: 'meeting' as const },
 ];
 
 const ACCEPTED_INVITES_KEY = 'sobutylnik-accepted-invites';
-const READ_CHATS_KEY = 'sobutylnik-read-chats';
+
 
 function loadAcceptedInvites(): string[] {
   try { return JSON.parse(localStorage.getItem(ACCEPTED_INVITES_KEY) || '[]'); } catch { return []; }

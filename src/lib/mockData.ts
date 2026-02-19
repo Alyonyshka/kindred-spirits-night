@@ -14,6 +14,32 @@ export interface MockUser {
   ratingCount: number;
 }
 
+export const READ_CHATS_KEY = 'sobutylnik-read-chats';
+
+export interface ChatEntry {
+  id: string;
+  userId: string;
+  lastMsg: string;
+  time: string;
+  unread: number;
+  online: boolean;
+}
+
+export const initialChats: ChatEntry[] = [
+  { id: '1', userId: '2', lastMsg: 'Привет! Давай встретимся сегодня?', time: '14:22', unread: 2, online: true },
+  { id: '2', userId: '7', lastMsg: 'Слушай, я нашёл крутой бар 🍸', time: '12:05', unread: 1, online: true },
+  { id: '3', userId: '6', lastMsg: 'Принято! До встречи', time: 'вчера', unread: 0, online: false },
+];
+
+export function getUnreadCount(): number {
+  try {
+    const readIds: string[] = JSON.parse(localStorage.getItem(READ_CHATS_KEY) || '[]');
+    return initialChats.filter(c => c.unread > 0 && !readIds.includes(c.id)).length;
+  } catch {
+    return 0;
+  }
+}
+
 export const mockUsers: MockUser[] = [
   {
     id: '1', name: 'Алексей', age: 28, avatar: '',

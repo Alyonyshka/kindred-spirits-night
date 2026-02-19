@@ -1,7 +1,9 @@
+import { useState, useEffect } from 'react';
 import { Search, MessageCircle, Heart, Calendar, User } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
 import { t } from '@/lib/i18n';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { getUnreadCount } from '@/lib/mockData';
 
 const tabs = [
   { id: 'search', icon: Search, path: '/', labelKey: 'navSearch' },
@@ -15,6 +17,11 @@ export default function BottomNav() {
   const { language } = useApp();
   const navigate = useNavigate();
   const location = useLocation();
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    setUnreadCount(getUnreadCount());
+  }, [location.pathname]);
 
   const activeId = tabs.find(tab => tab.path === location.pathname)?.id || 'search';
 
@@ -33,6 +40,11 @@ export default function BottomNav() {
             >
               <div className={`relative ${isActive ? 'pulse-active rounded-full' : ''}`}>
                 <Icon size={22} strokeWidth={isActive ? 2.5 : 1.5} />
+                {id === 'messages' && unreadCount > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-[9px] font-bold leading-none">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
               </div>
               <span className="text-[10px] font-medium">{t(labelKey, language)}</span>
             </button>
