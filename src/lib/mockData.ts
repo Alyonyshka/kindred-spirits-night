@@ -15,6 +15,11 @@ export interface MockUser {
 }
 
 export const READ_CHATS_KEY = 'sobutylnik-read-chats';
+export const JOINED_EVENTS_KEY = 'sobutylnik-joined-events';
+export const SEEN_FAVORITES_KEY = 'sobutylnik-seen-favorites';
+
+// Total favorites count (first 3 mock users treated as favorites)
+export const TOTAL_FAVORITES = 3;
 
 export interface ChatEntry {
   id: string;
@@ -31,6 +36,9 @@ export const initialChats: ChatEntry[] = [
   { id: '3', userId: '6', lastMsg: 'Принято! До встречи', time: 'вчера', unread: 0, online: false },
 ];
 
+// Initial event IDs (to compare with joined list)
+export const INITIAL_EVENT_IDS = ['1', '2', '3'];
+
 export function getUnreadCount(): number {
   try {
     const readIds: string[] = JSON.parse(localStorage.getItem(READ_CHATS_KEY) || '[]');
@@ -38,6 +46,28 @@ export function getUnreadCount(): number {
   } catch {
     return 0;
   }
+}
+
+export function getNewEventsCount(): number {
+  try {
+    const joinedIds: string[] = JSON.parse(localStorage.getItem(JOINED_EVENTS_KEY) || '[]');
+    return INITIAL_EVENT_IDS.filter(id => !joinedIds.includes(id)).length;
+  } catch {
+    return INITIAL_EVENT_IDS.length;
+  }
+}
+
+export function getNewFavoritesCount(): number {
+  try {
+    const seenCount = parseInt(localStorage.getItem(SEEN_FAVORITES_KEY) || '0', 10);
+    return Math.max(0, TOTAL_FAVORITES - seenCount);
+  } catch {
+    return TOTAL_FAVORITES;
+  }
+}
+
+export function markFavoritesSeen(): void {
+  localStorage.setItem(SEEN_FAVORITES_KEY, String(TOTAL_FAVORITES));
 }
 
 export const mockUsers: MockUser[] = [
