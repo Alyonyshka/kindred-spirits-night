@@ -1,62 +1,35 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, Search, Calendar, MapPin, Users, Clock, X } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
 import { t, drinkKeys } from '@/lib/i18n';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
-interface MockEvent {
+interface DbEvent {
   id: string;
+  creator_id: string;
   title: string;
   description: string;
   date: string;
   time: string;
   location: string;
-  participants: number;
-  maxParticipants: number;
   drink: string;
-  joined: boolean;
-}
-
-const initialEvents: MockEvent[] = [
-  {
-    id: '1', title: 'Вечер виски', description: 'Дегустация односолодового виски в уютном баре',
-    date: '2026-02-20', time: '20:00', location: 'Bar "Whiskey Room", Киев',
-    participants: 4, maxParticipants: 8, drink: 'whiskey', joined: false
-  },
-  {
-    id: '2', title: 'Крафтовая пятница', description: 'Пробуем новинки локальных пивоварен',
-    date: '2026-02-21', time: '19:00', location: 'Craft Pub, Киев',
-    participants: 6, maxParticipants: 12, drink: 'beer', joined: false
-  },
-  {
-    id: '3', title: 'Коктейльный мастер-класс', description: 'Учимся делать классические коктейли',
-    date: '2026-02-22', time: '18:30', location: 'MixBar Academy, Одесса',
-    participants: 2, maxParticipants: 6, drink: 'gin', joined: false
-  },
-];
-
-const JOINED_EVENTS_KEY = 'sobutylnik-joined-events';
-
-function loadJoinedIds(): string[] {
-  try { return JSON.parse(localStorage.getItem(JOINED_EVENTS_KEY) || '[]'); } catch { return []; }
-}
-
-function saveJoinedIds(ids: string[]) {
-  localStorage.setItem(JOINED_EVENTS_KEY, JSON.stringify(ids));
+  max_participants: number;
+  status: string;
+  created_at: string;
+  participant_count?: number;
+  joined?: boolean;
 }
 
 export default function Events() {
-  const { language } = useApp();
+  const { language, user } = useApp();
   const [search, setSearch] = useState('');
-  const [events, setEvents] = useState(() => {
-    const joinedIds = loadJoinedIds();
-    return initialEvents.map(e => ({ ...e, joined: joinedIds.includes(e.id) }));
-  });
+  const [events, setEvents] = useState<DbEvent[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [showParticipants, setShowParticipants] = useState<string | null>(null);
 
-  // Create form state
   const [newTitle, setNewTitle] = useState('');
   const [newDesc, setNewDesc] = useState('');
   const [newDate, setNewDate] = useState('');
@@ -65,55 +38,90 @@ export default function Events() {
   const [newDrink, setNewDrink] = useState('beer');
   const [newMax, setNewMax] = useState('8');
 
-  const filtered = events.filter(e =>
-    e.title.toLowerCase().includes(search.toLowerCase()) ||
-    e.description.toLowerCase().includes(search.toLowerCase())
-  );
+  const fetchEvents = async () => {
+    const { data: eventsData } = await supabase
+      .from('events')
+      .select('*')
+      .order('created_at', { ascending: false });
 
-  const handleJoin = (eventId: string) => {
-    setEvents(prev => {
-      const updated = prev.map(e => {
-        if (e.id === eventId) {
-          if (e.joined) {
-            toast.success(t('leftEvent', language));
-            return { ...e, joined: false, participants: e.participants - 1 };
-          }
-          if (e.participants >= e.maxParticipants) return e;
-          toast.success(t('joinedEvent', language));
-          return { ...e, joined: true, participants: e.participants + 1 };
-        }
-        return e;
-      });
-      saveJoinedIds(updated.filter(e => e.joined).map(e => e.id));
-      return updated;
-    });
+    if (!eventsData) { setLoading(false); return; }
+
+    // Get participant counts and user's participation
+    const { data: participants } = await supabase
+      .from('event_participants')
+      .select('event_id, user_id');
+
+    const enriched = eventsData.map(e => ({
+      ...e,
+      participant_count: (participants || []).filter(p => p.event_id === e.id).length,
+      joined: (participants || []).some(p => p.event_id === e.id && p.user_id === user?.id),
+    }));
+
+    setEvents(enriched);
+    setLoading(false);
   };
 
-  const handleCreate = () => {
-    if (!newTitle.trim() || !newDate || !newTime) return;
-    const newEvent: MockEvent = {
-      id: Date.now().toString(),
+  useEffect(() => {
+    fetchEvents();
+
+    // Realtime subscriptions
+    const eventsChannel = supabase
+      .channel('events-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'events' }, () => fetchEvents())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'event_participants' }, () => fetchEvents())
+      .subscribe();
+
+    return () => { supabase.removeChannel(eventsChannel); };
+  }, [user?.id]);
+
+  const filtered = events.filter(e =>
+    e.title.toLowerCase().includes(search.toLowerCase()) ||
+    (e.description || '').toLowerCase().includes(search.toLowerCase())
+  );
+
+  const handleJoin = async (eventId: string) => {
+    const event = events.find(e => e.id === eventId);
+    if (!event || !user) return;
+
+    if (event.joined) {
+      await supabase.from('event_participants').delete().eq('event_id', eventId).eq('user_id', user.id);
+      toast.success(t('leftEvent', language));
+    } else {
+      if ((event.participant_count || 0) >= event.max_participants) return;
+      await supabase.from('event_participants').insert({ event_id: eventId, user_id: user.id, status: 'confirmed' });
+      toast.success(t('joinedEvent', language));
+    }
+  };
+
+  const handleCreate = async () => {
+    if (!newTitle.trim() || !newDate || !newTime || !user) return;
+    const { data, error } = await supabase.from('events').insert({
+      creator_id: user.id,
       title: newTitle.trim(),
       description: newDesc.trim(),
       date: newDate,
       time: newTime,
       location: newLocation.trim(),
-      participants: 1,
-      maxParticipants: Math.max(2, Math.min(99, Number(newMax) || 8)),
       drink: newDrink,
-      joined: true,
-    };
-    setEvents(prev => {
-      const updated = [newEvent, ...prev];
-      saveJoinedIds(updated.filter(e => e.joined).map(e => e.id));
-      return updated;
-    });
+      max_participants: Math.max(2, Math.min(99, Number(newMax) || 8)),
+      status: 'confirmed',
+    }).select().single();
+
+    if (error) { toast.error(error.message); return; }
+    // Auto-join as creator
+    if (data) {
+      await supabase.from('event_participants').insert({ event_id: data.id, user_id: user.id, status: 'confirmed' });
+    }
     setShowCreate(false);
     setNewTitle(''); setNewDesc(''); setNewDate(''); setNewTime(''); setNewLocation(''); setNewDrink('beer'); setNewMax('8');
     toast.success(t('eventCreated', language));
   };
 
   const inputClass = "w-full px-4 py-2.5 rounded-2xl bg-secondary/30 border border-border text-sm placeholder:text-muted-foreground focus:outline-none focus:amber-border-glow transition-all";
+
+  if (loading) {
+    return <div className="text-center py-12 text-muted-foreground">{t('loading', language)}</div>;
+  }
 
   return (
     <div className="space-y-4">
@@ -151,15 +159,24 @@ export default function Events() {
                   <h3 className="font-semibold amber-glow">{event.title}</h3>
                   <p className="text-sm text-muted-foreground mt-1">{event.description}</p>
                 </div>
-                <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs border border-primary/20 whitespace-nowrap">
-                  {t(event.drink, language)}
-                </span>
+                <div className="flex flex-col items-end gap-1">
+                  <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs border border-primary/20 whitespace-nowrap">
+                    {t(event.drink || 'beer', language)}
+                  </span>
+                  <span className={`px-2 py-0.5 rounded-full text-xs border ${
+                    event.status === 'confirmed' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                    event.status === 'cancelled' ? 'bg-destructive/10 text-destructive border-destructive/20' :
+                    'bg-primary/5 text-muted-foreground border-border'
+                  }`}>
+                    {t(event.status || 'pending', language)}
+                  </span>
+                </div>
               </div>
               <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
                 <span className="flex items-center gap-1"><Calendar size={12} /> {event.date}</span>
                 <span className="flex items-center gap-1"><Clock size={12} /> {event.time}</span>
                 <span className="flex items-center gap-1"><MapPin size={12} /> {event.location}</span>
-                <span className="flex items-center gap-1"><Users size={12} /> {event.participants}/{event.maxParticipants}</span>
+                <span className="flex items-center gap-1"><Users size={12} /> {event.participant_count || 0}/{event.max_participants}</span>
               </div>
               <div className="flex gap-2">
                 <button
@@ -176,12 +193,12 @@ export default function Events() {
                   onClick={() => setShowParticipants(showParticipants === event.id ? null : event.id)}
                   className="px-4 py-2 rounded-xl text-xs font-medium border border-border text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  {t('participants', language)} ({event.participants})
+                  {t('participants', language)} ({event.participant_count || 0})
                 </button>
               </div>
               {showParticipants === event.id && (
                 <div className="glass-panel p-3 text-xs text-muted-foreground">
-                  {t('participants', language)}: {event.participants} / {event.maxParticipants}
+                  {t('participants', language)}: {event.participant_count || 0} / {event.max_participants}
                 </div>
               )}
             </div>

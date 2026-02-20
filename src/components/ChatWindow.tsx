@@ -2,13 +2,14 @@ import { useState, useRef, useEffect } from 'react';
 import { X, Send, User, Image, Video, Mic, MicOff, Smile, Paperclip, Reply, Edit2 } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
 import { t } from '@/lib/i18n';
-import { MockUser } from '@/lib/mockData';
+import { supabase } from '@/integrations/supabase/client';
+import type { Profile } from '@/hooks/useAuth';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import MessageContextMenu from './MessageContextMenu';
 
 interface ChatWindowProps {
-  user: MockUser;
+  user: Profile;
   onClose: () => void;
 }
 
@@ -22,15 +23,14 @@ interface ChatMessage {
   read?: boolean;
   edited?: boolean;
   replyTo?: { text: string; name: string };
+  dbId?: string;
 }
 
 const EMOJI_LIST = ['😀','😂','🤣','😍','🥳','🍻','🍷','🍺','🥂','🍸','🔥','❤️','👍','🎉','🤝','😎','🌙','✨','💪','🙌'];
 
-export default function ChatWindow({ user, onClose }: ChatWindowProps) {
-  const { language } = useApp();
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    { id: '1', text: `${t('online', language)}! 👋`, fromMe: false, time: '14:00', type: 'text', read: true },
-  ]);
+export default function ChatWindow({ user: otherUser, onClose }: ChatWindowProps) {
+  const { language, user: currentUser } = useApp();
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [showEmoji, setShowEmoji] = useState(false);
@@ -39,21 +39,73 @@ export default function ChatWindow({ user, onClose }: ChatWindowProps) {
   const [contextMenu, setContextMenu] = useState<{ msg: ChatMessage; x: number; y: number } | null>(null);
   const [editingMsg, setEditingMsg] = useState<ChatMessage | null>(null);
   const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
+  const [loading, setLoading] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
   const photoRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLInputElement>(null);
 
+  // Fetch messages from DB
+  const fetchMessages = async () => {
+    if (!currentUser) return;
+    const { data } = await supabase
+      .from('messages')
+      .select('*')
+      .or(`and(sender_id.eq.${currentUser.id},receiver_id.eq.${otherUser.user_id}),and(sender_id.eq.${otherUser.user_id},receiver_id.eq.${currentUser.id})`)
+      .order('created_at', { ascending: true });
+
+    if (data) {
+      const mapped: ChatMessage[] = data.map(m => ({
+        id: m.id,
+        dbId: m.id,
+        text: m.content || '',
+        fromMe: m.sender_id === currentUser.id,
+        time: new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        type: (m.type as ChatMessage['type']) || 'text',
+        mediaUrl: m.media_url || undefined,
+        read: m.read || false,
+        edited: m.edited || false,
+      }));
+      setMessages(mapped);
+    }
+    setLoading(false);
+
+    // Mark received messages as read
+    await supabase
+      .from('messages')
+      .update({ read: true })
+      .eq('sender_id', otherUser.user_id)
+      .eq('receiver_id', currentUser.id)
+      .eq('read', false);
+  };
+
+  useEffect(() => {
+    fetchMessages();
+
+    // Realtime subscription
+    const channel = supabase
+      .channel(`chat-${otherUser.user_id}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'messages',
+      }, (payload) => {
+        const msg = payload.new as any;
+        if (!msg) { fetchMessages(); return; }
+        // Only handle messages in this conversation
+        if (
+          (msg.sender_id === currentUser?.id && msg.receiver_id === otherUser.user_id) ||
+          (msg.sender_id === otherUser.user_id && msg.receiver_id === currentUser?.id)
+        ) {
+          fetchMessages();
+        }
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [currentUser?.id, otherUser.user_id]);
+
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
-  }, [messages]);
-
-  // Simulate typing indicator when user sends a message
-  useEffect(() => {
-    if (messages.length > 1 && messages[messages.length - 1].fromMe) {
-      setIsTyping(true);
-      const timer = setTimeout(() => setIsTyping(false), 2000 + Math.random() * 2000);
-      return () => clearTimeout(timer);
-    }
   }, [messages]);
 
   const getTime = () => {
@@ -61,26 +113,27 @@ export default function ChatWindow({ user, onClose }: ChatWindowProps) {
     return `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
   };
 
-  const sendMessage = () => {
-    if (!input.trim()) return;
-    if (editingMsg) {
-      setMessages(prev => prev.map(m => m.id === editingMsg.id ? { ...m, text: input.trim(), edited: true } : m));
+  const sendMessage = async () => {
+    if (!input.trim() || !currentUser) return;
+
+    if (editingMsg && editingMsg.dbId) {
+      await supabase.from('messages').update({ content: input.trim(), edited: true }).eq('id', editingMsg.dbId);
       setEditingMsg(null);
       setInput('');
       toast.success(t('msgEdited', language));
       return;
     }
-    const newMsg: ChatMessage = {
-      id: Date.now().toString(), text: input.trim(), fromMe: true, time: getTime(), type: 'text', read: false,
-      ...(replyTo ? { replyTo: { text: replyTo.text, name: replyTo.fromMe ? t('navProfile', language) : user.name } } : {}),
-    };
-    setMessages(prev => [...prev, newMsg]);
+
+    await supabase.from('messages').insert({
+      sender_id: currentUser.id,
+      receiver_id: otherUser.user_id,
+      content: input.trim(),
+      type: 'text',
+    });
+
     setInput('');
     setShowEmoji(false);
     setReplyTo(null);
-    setTimeout(() => {
-      setMessages(prev => prev.map((m, i) => i === prev.length - 1 ? { ...m, read: true } : m));
-    }, 1000);
   };
 
   const handleMsgContextMenu = (e: React.MouseEvent | React.TouchEvent, msg: ChatMessage) => {
@@ -89,8 +142,11 @@ export default function ChatWindow({ user, onClose }: ChatWindowProps) {
     setContextMenu({ msg, x: pos.x, y: pos.y });
   };
 
-  const handleDeleteMsg = (id: string) => {
-    setMessages(prev => prev.filter(m => m.id !== id));
+  const handleDeleteMsg = async (id: string) => {
+    const msg = messages.find(m => m.id === id);
+    if (msg?.dbId) {
+      await supabase.from('messages').delete().eq('id', msg.dbId);
+    }
     toast.success(t('msgDeleted', language));
   };
 
@@ -99,41 +155,43 @@ export default function ChatWindow({ user, onClose }: ChatWindowProps) {
     setInput(msg.text);
   };
 
-  const handleReplyMsg = (msg: ChatMessage) => {
-    setReplyTo(msg);
-  };
-
+  const handleReplyMsg = (msg: ChatMessage) => setReplyTo(msg);
   const handleCopyMsg = (msg: ChatMessage) => {
     navigator.clipboard.writeText(msg.text);
     toast.success(t('msgCopied', language));
   };
+  const handleForwardMsg = () => toast.success(t('msgForwarded', language));
 
-  const handleForwardMsg = (msg: ChatMessage) => {
-    toast.success(t('msgForwarded', language));
-  };
-
-  const handlePhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file || !currentUser) return;
     const reader = new FileReader();
-    reader.onload = () => {
-      setMessages(prev => [...prev, {
-        id: Date.now().toString(), text: '📷', fromMe: true, time: getTime(), type: 'photo', mediaUrl: reader.result as string, read: false
-      }]);
+    reader.onload = async () => {
+      await supabase.from('messages').insert({
+        sender_id: currentUser.id,
+        receiver_id: otherUser.user_id,
+        content: '📷',
+        type: 'photo',
+        media_url: reader.result as string,
+      });
       toast.success(t('photoSent', language));
     };
     reader.readAsDataURL(file);
     setShowAttach(false);
   };
 
-  const handleVideo = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleVideo = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file || !currentUser) return;
     const reader = new FileReader();
-    reader.onload = () => {
-      setMessages(prev => [...prev, {
-        id: Date.now().toString(), text: '🎬', fromMe: true, time: getTime(), type: 'video', mediaUrl: reader.result as string, read: false
-      }]);
+    reader.onload = async () => {
+      await supabase.from('messages').insert({
+        sender_id: currentUser.id,
+        receiver_id: otherUser.user_id,
+        content: '🎬',
+        type: 'video',
+        media_url: reader.result as string,
+      });
       toast.success(t('videoSent', language));
     };
     reader.readAsDataURL(file);
@@ -177,7 +235,7 @@ export default function ChatWindow({ user, onClose }: ChatWindowProps) {
           if (e.data.size > 0) audioChunksRef.current.push(e.data);
         };
 
-        recorder.onstop = () => {
+        recorder.onstop = async () => {
           stream.getTracks().forEach(t => t.stop());
           if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
           const duration = Math.max(1, Math.floor((Date.now() - recordingStartRef.current) / 1000));
@@ -185,15 +243,16 @@ export default function ChatWindow({ user, onClose }: ChatWindowProps) {
           const url = URL.createObjectURL(blob);
           const mins = Math.floor(duration / 60);
           const secs = duration % 60;
-          setMessages(prev => [...prev, {
-            id: Date.now().toString(),
-            text: `🎤 ${mins}:${secs.toString().padStart(2, '0')}`,
-            fromMe: true,
-            time: getTime(),
-            type: 'voice',
-            mediaUrl: url,
-            read: false,
-          }]);
+
+          if (currentUser) {
+            await supabase.from('messages').insert({
+              sender_id: currentUser.id,
+              receiver_id: otherUser.user_id,
+              content: `🎤 ${mins}:${secs.toString().padStart(2, '0')}`,
+              type: 'voice',
+              media_url: url,
+            });
+          }
           setRecordingTime(0);
         };
 
@@ -206,9 +265,7 @@ export default function ChatWindow({ user, onClose }: ChatWindowProps) {
     }
   };
 
-  const addEmoji = (emoji: string) => {
-    setInput(prev => prev + emoji);
-  };
+  const addEmoji = (emoji: string) => setInput(prev => prev + emoji);
 
   return (
     <motion.div
@@ -222,21 +279,17 @@ export default function ChatWindow({ user, onClose }: ChatWindowProps) {
         {/* Header */}
         <div className="glass-panel-strong p-4 flex items-center gap-3 border-b border-border/50">
           <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center border border-border overflow-hidden">
-            {user.avatar ? (
-              <img src={user.avatar} alt={user.name} className="w-full h-full object-cover rounded-full" />
+            {otherUser.avatar_url ? (
+              <img src={otherUser.avatar_url} alt={otherUser.name} className="w-full h-full object-cover rounded-full" />
             ) : (
               <User size={20} className="text-muted-foreground" />
             )}
           </div>
           <div className="flex-1">
-            <h3 className="font-semibold text-sm">{user.name}</h3>
-            {isTyping ? (
-              <span className="text-xs text-primary animate-pulse">{t('typing', language)}</span>
-            ) : (
-              <span className={`text-xs ${user.online ? 'text-emerald-400' : 'text-muted-foreground'}`}>
-                {t(user.online ? 'online' : 'offline', language)}
-              </span>
-            )}
+            <h3 className="font-semibold text-sm">{otherUser.name}</h3>
+            <span className={`text-xs ${otherUser.online ? 'text-emerald-400' : 'text-muted-foreground'}`}>
+              {t(otherUser.online ? 'online' : 'offline', language)}
+            </span>
           </div>
           <button onClick={onClose} className="p-2 rounded-lg hover:bg-accent transition-colors">
             <X size={20} />
@@ -245,65 +298,59 @@ export default function ChatWindow({ user, onClose }: ChatWindowProps) {
 
         {/* Messages */}
         <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3 scrollbar-hide">
-          {messages.map(msg => (
-            <div key={msg.id} className={`flex ${msg.fromMe ? 'justify-end' : 'justify-start'}`}>
-              <div
-                onContextMenu={(e) => handleMsgContextMenu(e, msg)}
-                onTouchStart={(e) => {
-                  const timer = setTimeout(() => handleMsgContextMenu(e, msg), 500);
-                  const clear = () => { clearTimeout(timer); e.currentTarget.removeEventListener('touchend', clear); };
-                  e.currentTarget.addEventListener('touchend', clear);
-                }}
-                className={`max-w-[75%] px-4 py-2.5 rounded-2xl text-sm cursor-pointer select-none ${
-                  msg.fromMe
-                    ? 'bg-primary text-primary-foreground rounded-br-md'
-                    : 'glass-panel border border-border rounded-bl-md'
-                }`}
-              >
-                {msg.replyTo && (
-                  <div className={`mb-1.5 px-2 py-1 rounded-lg border-l-2 text-[11px] ${
-                    msg.fromMe ? 'border-primary-foreground/40 bg-primary-foreground/10' : 'border-primary/40 bg-primary/5'
-                  }`}>
-                    <span className="font-semibold block">{msg.replyTo.name}</span>
-                    <span className="opacity-70 line-clamp-1">{msg.replyTo.text}</span>
-                  </div>
-                )}
-                {msg.type === 'photo' && msg.mediaUrl && (
-                  <img src={msg.mediaUrl} alt="photo" className="rounded-xl max-w-full mb-1" />
-                )}
-                {msg.type === 'video' && msg.mediaUrl && (
-                  <video src={msg.mediaUrl} controls className="rounded-xl max-w-full mb-1" />
-                )}
-                {msg.type === 'voice' && (
-                  <div className="flex items-center gap-2 mb-1">
-                    <Mic size={14} />
-                    {msg.mediaUrl ? (
-                      <audio src={msg.mediaUrl} controls className="h-8 max-w-[180px]" />
-                    ) : (
-                      <div className="h-1 flex-1 rounded-full bg-primary-foreground/30">
-                        <div className="h-full w-2/3 rounded-full bg-primary-foreground/70" />
-                      </div>
-                    )}
-                  </div>
-                )}
-                <p>{msg.text}</p>
-                <span className={`text-[10px] mt-1 block ${msg.fromMe ? 'text-primary-foreground/60' : 'text-muted-foreground'}`}>
-                  {msg.time} {msg.edited && `· ${t('msgEdited', language)}`} {msg.fromMe && (msg.read ? '✓✓' : '✓')}
-                </span>
-              </div>
-            </div>
-          ))}
-          {/* Typing indicator */}
-          {isTyping && (
-            <div className="flex justify-start">
-              <div className="glass-panel border border-border rounded-2xl rounded-bl-md px-4 py-2.5">
-                <div className="flex gap-1">
-                  <span className="w-2 h-2 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: '0ms' }} />
-                  <span className="w-2 h-2 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: '150ms' }} />
-                  <span className="w-2 h-2 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: '300ms' }} />
+          {loading ? (
+            <p className="text-center text-muted-foreground">{t('loading', language)}</p>
+          ) : messages.length === 0 ? (
+            <p className="text-center text-muted-foreground text-sm py-8">{t('noResults', language)}</p>
+          ) : (
+            messages.map(msg => (
+              <div key={msg.id} className={`flex ${msg.fromMe ? 'justify-end' : 'justify-start'}`}>
+                <div
+                  onContextMenu={(e) => handleMsgContextMenu(e, msg)}
+                  onTouchStart={(e) => {
+                    const timer = setTimeout(() => handleMsgContextMenu(e, msg), 500);
+                    const clear = () => { clearTimeout(timer); e.currentTarget.removeEventListener('touchend', clear); };
+                    e.currentTarget.addEventListener('touchend', clear);
+                  }}
+                  className={`max-w-[75%] px-4 py-2.5 rounded-2xl text-sm cursor-pointer select-none ${
+                    msg.fromMe
+                      ? 'bg-primary text-primary-foreground rounded-br-md'
+                      : 'glass-panel border border-border rounded-bl-md'
+                  }`}
+                >
+                  {msg.replyTo && (
+                    <div className={`mb-1.5 px-2 py-1 rounded-lg border-l-2 text-[11px] ${
+                      msg.fromMe ? 'border-primary-foreground/40 bg-primary-foreground/10' : 'border-primary/40 bg-primary/5'
+                    }`}>
+                      <span className="font-semibold block">{msg.replyTo.name}</span>
+                      <span className="opacity-70 line-clamp-1">{msg.replyTo.text}</span>
+                    </div>
+                  )}
+                  {msg.type === 'photo' && msg.mediaUrl && (
+                    <img src={msg.mediaUrl} alt="photo" className="rounded-xl max-w-full mb-1" />
+                  )}
+                  {msg.type === 'video' && msg.mediaUrl && (
+                    <video src={msg.mediaUrl} controls className="rounded-xl max-w-full mb-1" />
+                  )}
+                  {msg.type === 'voice' && (
+                    <div className="flex items-center gap-2 mb-1">
+                      <Mic size={14} />
+                      {msg.mediaUrl ? (
+                        <audio src={msg.mediaUrl} controls className="h-8 max-w-[180px]" />
+                      ) : (
+                        <div className="h-1 flex-1 rounded-full bg-primary-foreground/30">
+                          <div className="h-full w-2/3 rounded-full bg-primary-foreground/70" />
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  <p>{msg.text}</p>
+                  <span className={`text-[10px] mt-1 block ${msg.fromMe ? 'text-primary-foreground/60' : 'text-muted-foreground'}`}>
+                    {msg.time} {msg.edited && `· ${t('msgEdited', language)}`} {msg.fromMe && (msg.read ? '✓✓' : '✓')}
+                  </span>
                 </div>
               </div>
-            </div>
+            ))
           )}
         </div>
 
@@ -368,7 +415,7 @@ export default function ChatWindow({ user, onClose }: ChatWindowProps) {
               {editingMsg ? <Edit2 size={14} className="text-primary shrink-0" /> : <Reply size={14} className="text-primary shrink-0" />}
               <div className="flex-1 min-w-0">
                 <span className="text-[10px] text-primary font-medium block">
-                  {editingMsg ? t('msgEdit', language) : (replyTo!.fromMe ? t('navProfile', language) : user.name)}
+                  {editingMsg ? t('msgEdit', language) : (replyTo!.fromMe ? t('navProfile', language) : otherUser.name)}
                 </span>
                 <span className="text-xs text-muted-foreground truncate block">
                   {editingMsg ? editingMsg.text : replyTo!.text}
@@ -413,13 +460,11 @@ export default function ChatWindow({ user, onClose }: ChatWindowProps) {
                   <MicOff size={18} />
                   {Math.floor(recordingTime / 60)}:{(recordingTime % 60).toString().padStart(2, '0')}
                 </span>
-              ) : <Mic size={18} />}
+              ) : (
+                <Mic size={18} />
+              )}
             </button>
-            <button
-              onClick={sendMessage}
-              disabled={!input.trim()}
-              className="p-2.5 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-40"
-            >
+            <button onClick={sendMessage} className="p-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors">
               <Send size={18} />
             </button>
           </div>
@@ -427,22 +472,20 @@ export default function ChatWindow({ user, onClose }: ChatWindowProps) {
       </div>
 
       {/* Context menu */}
-      <AnimatePresence>
-        {contextMenu && (
-          <MessageContextMenu
-            fromMe={contextMenu.msg.fromMe}
-            hasMedia={!!(contextMenu.msg.mediaUrl && (contextMenu.msg.type === 'photo' || contextMenu.msg.type === 'video'))}
-            mediaUrl={contextMenu.msg.mediaUrl}
-            position={{ x: contextMenu.x, y: contextMenu.y }}
-            onClose={() => setContextMenu(null)}
-            onDelete={() => handleDeleteMsg(contextMenu.msg.id)}
-            onEdit={() => handleEditMsg(contextMenu.msg)}
-            onReply={() => handleReplyMsg(contextMenu.msg)}
-            onForward={() => handleForwardMsg(contextMenu.msg)}
-            onCopy={() => handleCopyMsg(contextMenu.msg)}
-          />
-        )}
-      </AnimatePresence>
+      {contextMenu && (
+        <MessageContextMenu
+          position={{ x: contextMenu.x, y: contextMenu.y }}
+          fromMe={contextMenu.msg.fromMe}
+          hasMedia={!!contextMenu.msg.mediaUrl}
+          mediaUrl={contextMenu.msg.mediaUrl}
+          onClose={() => setContextMenu(null)}
+          onDelete={() => { handleDeleteMsg(contextMenu.msg.id); setContextMenu(null); }}
+          onEdit={() => { if (contextMenu.msg.fromMe) handleEditMsg(contextMenu.msg); setContextMenu(null); }}
+          onReply={() => { handleReplyMsg(contextMenu.msg); setContextMenu(null); }}
+          onCopy={() => { handleCopyMsg(contextMenu.msg); setContextMenu(null); }}
+          onForward={() => { handleForwardMsg(); setContextMenu(null); }}
+        />
+      )}
     </motion.div>
   );
 }

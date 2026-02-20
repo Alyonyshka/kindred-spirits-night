@@ -14,16 +14,228 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      event_participants: {
+        Row: {
+          event_id: string
+          id: string
+          joined_at: string
+          status: Database["public"]["Enums"]["event_status"] | null
+          user_id: string
+        }
+        Insert: {
+          event_id: string
+          id?: string
+          joined_at?: string
+          status?: Database["public"]["Enums"]["event_status"] | null
+          user_id: string
+        }
+        Update: {
+          event_id?: string
+          id?: string
+          joined_at?: string
+          status?: Database["public"]["Enums"]["event_status"] | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_participants_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      events: {
+        Row: {
+          created_at: string
+          creator_id: string
+          date: string | null
+          description: string | null
+          drink: string | null
+          id: string
+          location: string | null
+          max_participants: number | null
+          status: Database["public"]["Enums"]["event_status"] | null
+          time: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          creator_id: string
+          date?: string | null
+          description?: string | null
+          drink?: string | null
+          id?: string
+          location?: string | null
+          max_participants?: number | null
+          status?: Database["public"]["Enums"]["event_status"] | null
+          time?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          creator_id?: string
+          date?: string | null
+          description?: string | null
+          drink?: string | null
+          id?: string
+          location?: string | null
+          max_participants?: number | null
+          status?: Database["public"]["Enums"]["event_status"] | null
+          time?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      meetings: {
+        Row: {
+          created_at: string
+          id: string
+          receiver_id: string
+          requester_id: string
+          status: Database["public"]["Enums"]["meeting_status"] | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          receiver_id: string
+          requester_id: string
+          status?: Database["public"]["Enums"]["meeting_status"] | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          receiver_id?: string
+          requester_id?: string
+          status?: Database["public"]["Enums"]["meeting_status"] | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      messages: {
+        Row: {
+          content: string
+          created_at: string
+          edited: boolean | null
+          id: string
+          media_url: string | null
+          read: boolean | null
+          receiver_id: string
+          reply_to_id: string | null
+          sender_id: string
+          type: string | null
+        }
+        Insert: {
+          content?: string
+          created_at?: string
+          edited?: boolean | null
+          id?: string
+          media_url?: string | null
+          read?: boolean | null
+          receiver_id: string
+          reply_to_id?: string | null
+          sender_id: string
+          type?: string | null
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          edited?: boolean | null
+          id?: string
+          media_url?: string | null
+          read?: boolean | null
+          receiver_id?: string
+          reply_to_id?: string | null
+          sender_id?: string
+          type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_reply_to_id_fkey"
+            columns: ["reply_to_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          about: string | null
+          age: number | null
+          alcohol_level: string | null
+          avatar_url: string | null
+          city: string | null
+          created_at: string
+          drinks: string[] | null
+          id: string
+          interests: string[] | null
+          name: string
+          online: boolean | null
+          rating: number | null
+          rating_count: number | null
+          updated_at: string
+          user_id: string
+          vibe: string | null
+        }
+        Insert: {
+          about?: string | null
+          age?: number | null
+          alcohol_level?: string | null
+          avatar_url?: string | null
+          city?: string | null
+          created_at?: string
+          drinks?: string[] | null
+          id?: string
+          interests?: string[] | null
+          name?: string
+          online?: boolean | null
+          rating?: number | null
+          rating_count?: number | null
+          updated_at?: string
+          user_id: string
+          vibe?: string | null
+        }
+        Update: {
+          about?: string | null
+          age?: number | null
+          alcohol_level?: string | null
+          avatar_url?: string | null
+          city?: string | null
+          created_at?: string
+          drinks?: string[] | null
+          id?: string
+          interests?: string[] | null
+          name?: string
+          online?: boolean | null
+          rating?: number | null
+          rating_count?: number | null
+          updated_at?: string
+          user_id?: string
+          vibe?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_my_profile_id: { Args: never; Returns: string }
+      is_meeting_participant: {
+        Args: { _meeting_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      event_status: "pending" | "confirmed" | "cancelled"
+      meeting_status: "pending" | "confirmed" | "declined"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +362,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      event_status: ["pending", "confirmed", "cancelled"],
+      meeting_status: ["pending", "confirmed", "declined"],
+    },
   },
 } as const

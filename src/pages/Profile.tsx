@@ -1,55 +1,101 @@
-import { useState, useRef } from 'react';
-import { User, Calendar, Handshake, Camera, X, MessageCircle, Ban, Star } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { User, Calendar, Handshake, Camera, X, MessageCircle, Ban, Star, LogOut } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
 import { t, drinkKeys, alcoholLevelKeys, interestKeys, cityKeys } from '@/lib/i18n';
 import { toast } from 'sonner';
-import { mockUsers, MockUser } from '@/lib/mockData';
+import { supabase } from '@/integrations/supabase/client';
+import type { Profile as ProfileType } from '@/hooks/useAuth';
 import { motion, AnimatePresence } from 'framer-motion';
 import ChatWindow from '@/components/ChatWindow';
 
 export default function Profile() {
-  const { language, city, setCity } = useApp();
+  const { language, city, setCity, profile, updateProfile, signOut, user } = useApp();
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const [name, setName] = useState(() => localStorage.getItem('profile-name') || '');
-  const [age, setAge] = useState(() => localStorage.getItem('profile-age') || '');
-  const [about, setAbout] = useState(() => localStorage.getItem('profile-about') || '');
-  const [drinks, setDrinks] = useState<string[]>(() => JSON.parse(localStorage.getItem('profile-drinks') || '[]'));
-  const [level, setLevel] = useState(() => localStorage.getItem('profile-level') || '');
-  const [interests, setInterests] = useState<string[]>(() => JSON.parse(localStorage.getItem('profile-interests') || '[]'));
-  const [avatar, setAvatar] = useState<string>(() => localStorage.getItem('profile-avatar') || '');
-  const [profileCity, setProfileCity] = useState(() => localStorage.getItem('profile-city') || city);
+  const [name, setName] = useState(profile?.name || '');
+  const [age, setAge] = useState(String(profile?.age || ''));
+  const [about, setAbout] = useState(profile?.about || '');
+  const [drinks, setDrinks] = useState<string[]>(profile?.drinks || []);
+  const [level, setLevel] = useState(profile?.alcohol_level || '');
+  const [interests, setInterests] = useState<string[]>(profile?.interests || []);
+  const [avatar, setAvatar] = useState<string>(profile?.avatar_url || '');
+  const [profileCity, setProfileCity] = useState(profile?.city || city);
   const [showDrinks, setShowDrinks] = useState(false);
   const [showInterests, setShowInterests] = useState(false);
   const [showCities, setShowCities] = useState(false);
 
-  // Modals
   const [showEventsModal, setShowEventsModal] = useState(false);
   const [showMeetingsModal, setShowMeetingsModal] = useState(false);
-  const [expandedUser, setExpandedUser] = useState<MockUser | null>(null);
-  const [chatUser, setChatUser] = useState<MockUser | null>(null);
+  const [expandedUser, setExpandedUser] = useState<ProfileType | null>(null);
+  const [chatUser, setChatUser] = useState<ProfileType | null>(null);
 
-  // Mock data for joined events and meetings
-  const myEvents = [
-    { id: '1', title: 'Вечер виски', date: '2026-02-20', time: '20:00', location: 'Bar "Whiskey Room"' },
-    { id: '2', title: 'Крафтовая пятница', date: '2026-02-21', time: '19:00', location: 'Craft Pub' },
-  ];
-  const myMeetings = mockUsers.slice(2, 5);
+  const [myEvents, setMyEvents] = useState<any[]>([]);
+  const [myMeetings, setMyMeetings] = useState<any[]>([]);
+
+  // Sync from profile when it loads
+  useEffect(() => {
+    if (profile) {
+      setName(profile.name || '');
+      setAge(String(profile.age || ''));
+      setAbout(profile.about || '');
+      setDrinks(profile.drinks || []);
+      setLevel(profile.alcohol_level || '');
+      setInterests(profile.interests || []);
+      setAvatar(profile.avatar_url || '');
+      setProfileCity(profile.city || city);
+    }
+  }, [profile]);
+
+  // Fetch user's events and meetings
+  useEffect(() => {
+    if (!user) return;
+    const fetchData = async () => {
+      // My events (as participant)
+      const { data: participations } = await supabase
+        .from('event_participants')
+        .select('event_id')
+        .eq('user_id', user.id);
+      if (participations && participations.length > 0) {
+        const eventIds = participations.map(p => p.event_id);
+        const { data: events } = await supabase.from('events').select('*').in('id', eventIds);
+        setMyEvents(events || []);
+      }
+
+      // My meetings (confirmed)
+      const { data: meetings } = await supabase
+        .from('meetings')
+        .select('*')
+        .or(`requester_id.eq.${user.id},receiver_id.eq.${user.id}`)
+        .eq('status', 'confirmed');
+      if (meetings && meetings.length > 0) {
+        const otherIds = meetings.map(m => m.requester_id === user.id ? m.receiver_id : m.requester_id);
+        const { data: profiles } = await supabase.from('profiles').select('*').in('user_id', otherIds);
+        setMyMeetings(profiles || []);
+      }
+    };
+    fetchData();
+  }, [user?.id]);
 
   const toggleDrink = (d: string) => setDrinks(prev => prev.includes(d) ? prev.filter(x => x !== d) : [...prev, d]);
   const toggleInterest = (i: string) => setInterests(prev => prev.includes(i) ? prev.filter(x => x !== i) : [...prev, i]);
 
-  const handleSave = () => {
-    localStorage.setItem('profile-name', name);
-    localStorage.setItem('profile-age', age);
-    localStorage.setItem('profile-about', about);
-    localStorage.setItem('profile-drinks', JSON.stringify(drinks));
-    localStorage.setItem('profile-level', level);
-    localStorage.setItem('profile-interests', JSON.stringify(interests));
-    localStorage.setItem('profile-avatar', avatar);
-    localStorage.setItem('profile-city', profileCity);
-    setCity(profileCity);
-    toast.success(t('profileSaved', language));
+  const handleSave = async () => {
+    const { error } = await updateProfile({
+      name,
+      age: Number(age) || 18,
+      about,
+      drinks,
+      alcohol_level: level,
+      interests,
+      avatar_url: avatar,
+      city: profileCity,
+    });
+    if (error) {
+      toast.error(error.message);
+    } else {
+      setCity(profileCity);
+      toast.success(t('profileSaved', language));
+    }
   };
 
   const handlePhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -60,17 +106,9 @@ export default function Profile() {
     reader.readAsDataURL(file);
   };
 
-  const handleMessageUser = (user: MockUser) => {
+  const handleMessageUser = (u: ProfileType) => {
     setExpandedUser(null);
-    setChatUser(user);
-  };
-
-  const handleMeetingUser = (user: MockUser) => {
-    toast.success(t('meetingRequestSent', language));
-  };
-
-  const handleBlockUser = (user: MockUser) => {
-    toast.success(t('userBlocked', language));
+    setChatUser(u);
   };
 
   const shortcuts = [
@@ -78,7 +116,7 @@ export default function Profile() {
     { icon: Handshake, label: t('proposeMeeting', language), count: myMeetings.length, action: () => setShowMeetingsModal(true) },
   ];
 
-  const renderUserCard = (user: MockUser) => (
+  const renderUserCard = (u: ProfileType) => (
     <motion.div
       className="fixed inset-0 z-[100] flex items-center justify-center p-4"
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -87,29 +125,29 @@ export default function Profile() {
       <motion.div className="relative glass-panel-strong p-6 w-full max-w-sm" initial={{ scale: 0.85, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.85, opacity: 0 }}>
         <div className="flex flex-col items-center text-center mb-4">
           <div className="w-20 h-20 rounded-full bg-secondary flex items-center justify-center border-2 border-primary/30 avatar-glow mb-3 overflow-hidden">
-            {user.avatar ? <img src={user.avatar} alt={user.name} className="w-full h-full object-cover rounded-full" /> : <User size={36} className="text-muted-foreground" />}
+            {u.avatar_url ? <img src={u.avatar_url} alt={u.name} className="w-full h-full object-cover rounded-full" /> : <User size={36} className="text-muted-foreground" />}
           </div>
-          <h2 className="text-lg font-bold">{user.name}, {user.age}</h2>
-          <p className="text-sm text-muted-foreground">{t(user.city, language)}</p>
-          <p className="text-sm text-primary mt-1">{user.vibe}</p>
+          <h2 className="text-lg font-bold">{u.name}, {u.age}</h2>
+          <p className="text-sm text-muted-foreground">{t(u.city, language)}</p>
+          <p className="text-sm text-primary mt-1">{u.vibe}</p>
         </div>
         <div className="space-y-3 mb-4">
-          <div><p className="text-xs text-muted-foreground mb-1">{t('aboutMe', language)}</p><p className="text-sm">{user.about}</p></div>
+          <div><p className="text-xs text-muted-foreground mb-1">{t('aboutMe', language)}</p><p className="text-sm">{u.about}</p></div>
           <div><p className="text-xs text-muted-foreground mb-1">{t('drinks', language)}</p>
-            <div className="flex flex-wrap gap-1">{user.drinks.map(d => <span key={d} className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs border border-primary/20">{t(d, language)}</span>)}</div>
+            <div className="flex flex-wrap gap-1">{(u.drinks || []).map(d => <span key={d} className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs border border-primary/20">{t(d, language)}</span>)}</div>
           </div>
           <div><p className="text-xs text-muted-foreground mb-1">{t('interests', language)}</p>
-            <div className="flex flex-wrap gap-1">{user.interests.map(i => <span key={i} className="px-2 py-0.5 rounded-full bg-accent text-accent-foreground text-xs">{t(i, language)}</span>)}</div>
+            <div className="flex flex-wrap gap-1">{(u.interests || []).map(i => <span key={i} className="px-2 py-0.5 rounded-full bg-accent text-accent-foreground text-xs">{t(i, language)}</span>)}</div>
           </div>
           <div className="flex items-center gap-1">
-            {[1,2,3,4,5].map(i => <Star key={i} size={16} className={i <= Math.round(user.rating) ? 'text-primary fill-primary' : 'text-muted-foreground/30'} />)}
-            <span className="text-xs text-muted-foreground ml-1">{user.rating.toFixed(1)} ({user.ratingCount})</span>
+            {[1,2,3,4,5].map(i => <Star key={i} size={16} className={i <= Math.round(u.rating) ? 'text-primary fill-primary' : 'text-muted-foreground/30'} />)}
+            <span className="text-xs text-muted-foreground ml-1">{u.rating} ({u.rating_count})</span>
           </div>
         </div>
         <div className="grid grid-cols-3 gap-2">
-          <button onClick={() => handleMessageUser(user)} className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-medium border border-border hover:border-primary/30 text-muted-foreground hover:text-primary transition-all"><MessageCircle size={14} />{t('sendMessage', language)}</button>
-          <button onClick={() => handleMeetingUser(user)} className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-medium border border-border hover:border-primary/30 text-muted-foreground hover:text-primary transition-all"><Handshake size={14} />{t('proposeMeeting', language)}</button>
-          <button onClick={() => handleBlockUser(user)} className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-medium border border-destructive/30 text-muted-foreground hover:text-destructive transition-all"><Ban size={14} />{t('blockUser', language)}</button>
+          <button onClick={() => handleMessageUser(u)} className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-medium border border-border hover:border-primary/30 text-muted-foreground hover:text-primary transition-all"><MessageCircle size={14} />{t('sendMessage', language)}</button>
+          <button onClick={() => toast.success(t('meetingRequestSent', language))} className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-medium border border-border hover:border-primary/30 text-muted-foreground hover:text-primary transition-all"><Handshake size={14} />{t('proposeMeeting', language)}</button>
+          <button onClick={() => toast.success(t('userBlocked', language))} className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-medium border border-destructive/30 text-muted-foreground hover:text-destructive transition-all"><Ban size={14} />{t('blockUser', language)}</button>
         </div>
       </motion.div>
     </motion.div>
@@ -198,7 +236,7 @@ export default function Profile() {
         </button>
       </div>
 
-      {/* Shortcuts - only Events and Meetings */}
+      {/* Shortcuts */}
       <div className="grid grid-cols-2 gap-2">
         {shortcuts.map(({ icon: Icon, label, count, action }) => (
           <button key={label} onClick={action} className="glass-panel p-3 flex items-center gap-2 card-hover">
@@ -208,6 +246,12 @@ export default function Profile() {
           </button>
         ))}
       </div>
+
+      {/* Log out */}
+      <button onClick={signOut} className="w-full py-3 rounded-2xl border border-destructive/30 text-destructive text-sm font-medium hover:bg-destructive/10 transition-colors flex items-center justify-center gap-2">
+        <LogOut size={16} />
+        {t('logOut', language)}
+      </button>
 
       {/* My Events Modal */}
       <AnimatePresence>
@@ -223,7 +267,7 @@ export default function Profile() {
                 <p className="text-center text-muted-foreground py-8">{t('noEvents', language)}</p>
               ) : (
                 <div className="space-y-3">
-                  {myEvents.map(ev => (
+                  {myEvents.map((ev: any) => (
                     <div key={ev.id} className="glass-panel p-3 space-y-1">
                       <h3 className="font-semibold text-sm amber-glow">{ev.title}</h3>
                       <p className="text-xs text-muted-foreground">{ev.date} • {ev.time}</p>
@@ -251,14 +295,14 @@ export default function Profile() {
                 <p className="text-center text-muted-foreground py-8">{t('noMeetings', language)}</p>
               ) : (
                 <div className="space-y-3">
-                  {myMeetings.map(user => (
-                    <div key={user.id} className="glass-panel p-3 flex items-center gap-3 card-hover cursor-pointer" onClick={() => { setShowMeetingsModal(false); setExpandedUser(user); }}>
+                  {myMeetings.map((u: any) => (
+                    <div key={u.id} className="glass-panel p-3 flex items-center gap-3 card-hover cursor-pointer" onClick={() => { setShowMeetingsModal(false); setExpandedUser(u); }}>
                       <div className="w-12 h-12 rounded-full bg-secondary flex items-center justify-center border border-border overflow-hidden">
-                        {user.avatar ? <img src={user.avatar} alt={user.name} className="w-full h-full object-cover rounded-full" /> : <User size={24} className="text-muted-foreground" />}
+                        {u.avatar_url ? <img src={u.avatar_url} alt={u.name} className="w-full h-full object-cover rounded-full" /> : <User size={24} className="text-muted-foreground" />}
                       </div>
                       <div className="flex-1">
-                        <h3 className="font-semibold text-sm">{user.name}, {user.age}</h3>
-                        <p className="text-xs text-muted-foreground">{user.vibe}</p>
+                        <h3 className="font-semibold text-sm">{u.name}, {u.age}</h3>
+                        <p className="text-xs text-muted-foreground">{u.vibe}</p>
                       </div>
                     </div>
                   ))}
@@ -269,15 +313,8 @@ export default function Profile() {
         )}
       </AnimatePresence>
 
-      {/* Expanded user card */}
-      <AnimatePresence>
-        {expandedUser && renderUserCard(expandedUser)}
-      </AnimatePresence>
-
-      {/* Chat window */}
-      <AnimatePresence>
-        {chatUser && <ChatWindow user={chatUser} onClose={() => setChatUser(null)} />}
-      </AnimatePresence>
+      <AnimatePresence>{expandedUser && renderUserCard(expandedUser)}</AnimatePresence>
+      <AnimatePresence>{chatUser && <ChatWindow user={chatUser} onClose={() => setChatUser(null)} />}</AnimatePresence>
     </div>
   );
 }

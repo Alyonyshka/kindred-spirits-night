@@ -1,5 +1,7 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { Language } from '@/lib/i18n';
+import { useAuth, Profile } from '@/hooks/useAuth';
+import type { User } from '@supabase/supabase-js';
 
 interface AppState {
   language: Language;
@@ -8,6 +10,15 @@ interface AppState {
   setCity: (city: string) => void;
   activeTab: string;
   setActiveTab: (tab: string) => void;
+  // Auth
+  user: User | null;
+  profile: Profile | null;
+  authLoading: boolean;
+  signUp: (email: string, password: string, name: string) => Promise<{ error: any }>;
+  signIn: (email: string, password: string) => Promise<{ error: any }>;
+  signOut: () => Promise<void>;
+  updateProfile: (updates: Partial<Profile>) => Promise<{ error: any }>;
+  fetchProfile: (userId: string) => Promise<void>;
 }
 
 const AppContext = createContext<AppState | null>(null);
@@ -20,6 +31,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return localStorage.getItem('sobutylnik-city') || 'kyiv';
   });
   const [activeTab, setActiveTab] = useState('search');
+  const auth = useAuth();
 
   const setLanguage = (lang: Language) => {
     setLanguageState(lang);
@@ -32,7 +44,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AppContext.Provider value={{ language, setLanguage, city, setCity, activeTab, setActiveTab }}>
+    <AppContext.Provider value={{
+      language, setLanguage, city, setCity, activeTab, setActiveTab,
+      user: auth.user,
+      profile: auth.profile,
+      authLoading: auth.loading,
+      signUp: auth.signUp,
+      signIn: auth.signIn,
+      signOut: auth.signOut,
+      updateProfile: auth.updateProfile,
+      fetchProfile: auth.fetchProfile,
+    }}>
       {children}
     </AppContext.Provider>
   );

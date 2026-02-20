@@ -1,102 +1,182 @@
-import { useState } from 'react';
-import { User, Handshake, Ban, MessageCircle, Star } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { User, Handshake, Ban, MessageCircle, Star, Check, X as XIcon } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
 import { t } from '@/lib/i18n';
-import { mockUsers, MockUser, initialChats, READ_CHATS_KEY } from '@/lib/mockData';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import ChatWindow from '@/components/ChatWindow';
+import type { Profile } from '@/hooks/useAuth';
 
-const initialInvites = [
-  { id: '1', userId: '3', type: 'meeting' as const },
-];
-
-const ACCEPTED_INVITES_KEY = 'sobutylnik-accepted-invites';
-
-
-function loadAcceptedInvites(): string[] {
-  try { return JSON.parse(localStorage.getItem(ACCEPTED_INVITES_KEY) || '[]'); } catch { return []; }
+interface Meeting {
+  id: string;
+  requester_id: string;
+  receiver_id: string;
+  status: string;
+  created_at: string;
+  requester_profile?: Profile;
+  receiver_profile?: Profile;
 }
 
-function loadReadChats(): string[] {
-  try { return JSON.parse(localStorage.getItem(READ_CHATS_KEY) || '[]'); } catch { return []; }
+interface ChatEntry {
+  id: string;
+  other_user: Profile;
+  last_message: string;
+  last_time: string;
+  unread: number;
+  online: boolean;
 }
 
 export default function Messages() {
-  const { language } = useApp();
-  const [chatUser, setChatUser] = useState<MockUser | null>(null);
-  const [invites, setInvites] = useState(() => {
-    const accepted = loadAcceptedInvites();
-    return initialInvites.filter(i => !accepted.includes(i.id));
-  });
-  const [chats, setChats] = useState(() => {
-    const readIds = loadReadChats();
-    return initialChats.map(c => ({ ...c, unread: readIds.includes(c.id) ? 0 : c.unread }));
-  });
-  const [expandedUser, setExpandedUser] = useState<MockUser | null>(null);
+  const { language, user } = useApp();
+  const [chatUser, setChatUser] = useState<Profile | null>(null);
+  const [meetings, setMeetings] = useState<Meeting[]>([]);
+  const [chats, setChats] = useState<ChatEntry[]>([]);
+  const [expandedUser, setExpandedUser] = useState<Profile | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const getUserById = (userId: string) => mockUsers.find(u => u.id === userId);
+  const fetchMeetings = async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from('meetings')
+      .select('*')
+      .or(`requester_id.eq.${user.id},receiver_id.eq.${user.id}`)
+      .eq('status', 'pending');
 
-  const handleAccept = (inviteId: string) => {
-    const accepted = loadAcceptedInvites();
-    if (!accepted.includes(inviteId)) {
-      localStorage.setItem(ACCEPTED_INVITES_KEY, JSON.stringify([...accepted, inviteId]));
+    if (!data) return;
+
+    // Fetch profiles for meetings
+    const userIds = [...new Set(data.flatMap(m => [m.requester_id, m.receiver_id]))];
+    const { data: profiles } = await supabase.from('profiles').select('*').in('user_id', userIds);
+
+    const enriched = data.map(m => ({
+      ...m,
+      requester_profile: profiles?.find(p => p.user_id === m.requester_id) as Profile | undefined,
+      receiver_profile: profiles?.find(p => p.user_id === m.receiver_id) as Profile | undefined,
+    }));
+
+    setMeetings(enriched.filter(m => m.receiver_id === user.id));
+  };
+
+  const fetchChats = async () => {
+    if (!user) return;
+
+    // Get distinct conversations from messages
+    const { data: msgs } = await supabase
+      .from('messages')
+      .select('*')
+      .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
+      .order('created_at', { ascending: false });
+
+    if (!msgs || msgs.length === 0) { setChats([]); return; }
+
+    // Group by other user
+    const chatMap = new Map<string, { last: typeof msgs[0]; unread: number }>();
+    for (const msg of msgs) {
+      const otherId = msg.sender_id === user.id ? msg.receiver_id : msg.sender_id;
+      if (!chatMap.has(otherId)) {
+        chatMap.set(otherId, { last: msg, unread: 0 });
+      }
+      if (msg.receiver_id === user.id && !msg.read) {
+        chatMap.get(otherId)!.unread++;
+      }
     }
-    setInvites(prev => prev.filter(i => i.id !== inviteId));
+
+    const otherIds = [...chatMap.keys()];
+    const { data: profiles } = await supabase.from('profiles').select('*').in('user_id', otherIds);
+
+    const chatEntries: ChatEntry[] = otherIds.map(uid => {
+      const entry = chatMap.get(uid)!;
+      const profile = profiles?.find(p => p.user_id === uid) as Profile;
+      return {
+        id: uid,
+        other_user: profile || { id: '', user_id: uid, name: 'User', age: 0, avatar_url: '', city: '', drinks: [], alcohol_level: '', interests: [], vibe: '', about: '', online: false, rating: 0, rating_count: 0 },
+        last_message: entry.last.content || '',
+        last_time: new Date(entry.last.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        unread: entry.unread,
+        online: profile?.online || false,
+      };
+    });
+
+    setChats(chatEntries);
+  };
+
+  useEffect(() => {
+    if (!user) return;
+    Promise.all([fetchMeetings(), fetchChats()]).then(() => setLoading(false));
+
+    const channel = supabase
+      .channel('messages-page-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, () => fetchChats())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'meetings' }, () => fetchMeetings())
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [user?.id]);
+
+  const handleAccept = async (meetingId: string) => {
+    await supabase.from('meetings').update({ status: 'confirmed' }).eq('id', meetingId);
     toast.success(t('meetingAccepted', language));
   };
 
-  const handleDecline = (inviteId: string) => {
-    setInvites(prev => prev.filter(i => i.id !== inviteId));
+  const handleDecline = async (meetingId: string) => {
+    await supabase.from('meetings').update({ status: 'declined' }).eq('id', meetingId);
     toast.success(t('meetingDeclined', language));
   };
 
-  const handleOpenChat = (user: MockUser, chatId: string) => {
-    // Mark as read
-    const readIds = loadReadChats();
-    if (!readIds.includes(chatId)) {
-      localStorage.setItem(READ_CHATS_KEY, JSON.stringify([...readIds, chatId]));
+  const handleOpenChat = async (profile: Profile) => {
+    // Mark messages as read
+    if (user) {
+      await supabase.from('messages').update({ read: true }).eq('sender_id', profile.user_id).eq('receiver_id', user.id).eq('read', false);
     }
-    setChats(prev => prev.map(c => c.id === chatId ? { ...c, unread: 0 } : c));
-    setChatUser(user);
+    setChatUser(profile);
   };
 
-  const handleAvatarClick = (e: React.MouseEvent, user: MockUser) => {
+  const handleAvatarClick = (e: React.MouseEvent, profile: Profile) => {
     e.stopPropagation();
-    setExpandedUser(user);
+    setExpandedUser(profile);
   };
 
-  const handleMessageUser = (user: MockUser) => {
+  const handleMessageUser = (profile: Profile) => {
     setExpandedUser(null);
-    setChatUser(user);
+    setChatUser(profile);
   };
+
+  if (loading) {
+    return <div className="text-center py-12 text-muted-foreground">{t('loading', language)}</div>;
+  }
 
   return (
     <div className="space-y-4">
       {/* Meeting invites */}
-      {invites.length > 0 && (
+      {meetings.length > 0 && (
         <div className="space-y-2">
           <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
             {t('proposeMeeting', language)}
           </h3>
-          {invites.map(inv => {
-            const user = getUserById(inv.userId);
+          {meetings.map(meeting => {
+            const profile = meeting.requester_profile;
             return (
-              <div key={inv.id} className="glass-panel p-4 flex items-center justify-between">
+              <div key={meeting.id} className="glass-panel p-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div
-                    onClick={(e) => user && handleAvatarClick(e, user)}
+                    onClick={(e) => profile && handleAvatarClick(e, profile)}
                     className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center border border-border cursor-pointer hover:border-primary/30 transition-all overflow-hidden"
                   >
-                    {user?.avatar ? <img src={user.avatar} alt={user.name} className="w-full h-full object-cover rounded-full" /> : <User size={20} className="text-muted-foreground" />}
+                    {profile?.avatar_url ? <img src={profile.avatar_url} alt={profile.name} className="w-full h-full object-cover rounded-full" /> : <User size={20} className="text-muted-foreground" />}
                   </div>
-                  <span className="font-medium text-sm">{user?.name || 'User'}</span>
+                  <div>
+                    <span className="font-medium text-sm">{profile?.name || 'User'}</span>
+                    <span className="block text-xs text-muted-foreground">{t('pending', language)}</span>
+                  </div>
                 </div>
                 <div className="flex gap-2">
-                  <button onClick={() => handleAccept(inv.id)} className="px-3 py-1.5 rounded-xl text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors">
+                  <button onClick={() => handleAccept(meeting.id)} className="px-3 py-1.5 rounded-xl text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors flex items-center gap-1">
+                    <Check size={12} />
                     {t('accept', language)}
                   </button>
-                  <button onClick={() => handleDecline(inv.id)} className="px-3 py-1.5 rounded-xl text-xs font-medium border border-border text-muted-foreground hover:text-destructive hover:border-destructive/30 transition-colors">
+                  <button onClick={() => handleDecline(meeting.id)} className="px-3 py-1.5 rounded-xl text-xs font-medium border border-border text-muted-foreground hover:text-destructive hover:border-destructive/30 transition-colors flex items-center gap-1">
+                    <XIcon size={12} />
                     {t('decline', language)}
                   </button>
                 </div>
@@ -111,29 +191,30 @@ export default function Messages() {
         <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
           {t('navMessages', language)}
         </h3>
-        {chats.map(chat => {
-          const user = getUserById(chat.userId);
-          return (
+        {chats.length === 0 ? (
+          <p className="text-center py-8 text-muted-foreground text-sm">{t('noResults', language)}</p>
+        ) : (
+          chats.map(chat => (
             <div
               key={chat.id}
-              onClick={() => user && handleOpenChat(user, chat.id)}
+              onClick={() => handleOpenChat(chat.other_user)}
               className="glass-panel p-4 flex items-center gap-3 card-hover cursor-pointer"
             >
               <div className="relative">
                 <div
-                  onClick={(e) => user && handleAvatarClick(e, user)}
+                  onClick={(e) => handleAvatarClick(e, chat.other_user)}
                   className="w-12 h-12 rounded-full bg-secondary flex items-center justify-center border border-border cursor-pointer hover:border-primary/30 transition-all overflow-hidden"
                 >
-                  {user?.avatar ? <img src={user.avatar} alt={user.name} className="w-full h-full object-cover rounded-full" /> : <User size={24} className="text-muted-foreground" />}
+                  {chat.other_user.avatar_url ? <img src={chat.other_user.avatar_url} alt={chat.other_user.name} className="w-full h-full object-cover rounded-full" /> : <User size={24} className="text-muted-foreground" />}
                 </div>
                 {chat.online && <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-400 rounded-full border-2 border-card" />}
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between">
-                  <span className="font-semibold text-sm">{user?.name || 'User'}</span>
-                  <span className="text-xs text-muted-foreground">{chat.time}</span>
+                  <span className="font-semibold text-sm">{chat.other_user.name}</span>
+                  <span className="text-xs text-muted-foreground">{chat.last_time}</span>
                 </div>
-                <p className="text-xs text-muted-foreground truncate">{chat.lastMsg}</p>
+                <p className="text-xs text-muted-foreground truncate">{chat.last_message}</p>
               </div>
               {chat.unread > 0 && (
                 <span className="bg-primary text-primary-foreground rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-bold">
@@ -141,8 +222,8 @@ export default function Messages() {
                 </span>
               )}
             </div>
-          );
-        })}
+          ))
+        )}
       </div>
 
       {/* Profile card modal */}
@@ -153,7 +234,7 @@ export default function Messages() {
             <motion.div className="relative glass-panel-strong p-6 w-full max-w-sm" initial={{ scale: 0.85, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.85, opacity: 0 }}>
               <div className="flex flex-col items-center text-center mb-4">
                 <div className="w-20 h-20 rounded-full bg-secondary flex items-center justify-center border-2 border-primary/30 avatar-glow mb-3 overflow-hidden">
-                  {expandedUser.avatar ? <img src={expandedUser.avatar} alt={expandedUser.name} className="w-full h-full object-cover rounded-full" /> : <User size={36} className="text-muted-foreground" />}
+                  {expandedUser.avatar_url ? <img src={expandedUser.avatar_url} alt={expandedUser.name} className="w-full h-full object-cover rounded-full" /> : <User size={36} className="text-muted-foreground" />}
                 </div>
                 <h2 className="text-lg font-bold">{expandedUser.name}, {expandedUser.age}</h2>
                 <p className="text-sm text-muted-foreground">{t(expandedUser.city, language)}</p>
@@ -162,14 +243,14 @@ export default function Messages() {
               <div className="space-y-3 mb-4">
                 <div><p className="text-xs text-muted-foreground mb-1">{t('aboutMe', language)}</p><p className="text-sm">{expandedUser.about}</p></div>
                 <div><p className="text-xs text-muted-foreground mb-1">{t('drinks', language)}</p>
-                  <div className="flex flex-wrap gap-1">{expandedUser.drinks.map(d => <span key={d} className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs border border-primary/20">{t(d, language)}</span>)}</div>
+                  <div className="flex flex-wrap gap-1">{(expandedUser.drinks || []).map(d => <span key={d} className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs border border-primary/20">{t(d, language)}</span>)}</div>
                 </div>
                 <div><p className="text-xs text-muted-foreground mb-1">{t('interests', language)}</p>
-                  <div className="flex flex-wrap gap-1">{expandedUser.interests.map(i => <span key={i} className="px-2 py-0.5 rounded-full bg-accent text-accent-foreground text-xs">{t(i, language)}</span>)}</div>
+                  <div className="flex flex-wrap gap-1">{(expandedUser.interests || []).map(i => <span key={i} className="px-2 py-0.5 rounded-full bg-accent text-accent-foreground text-xs">{t(i, language)}</span>)}</div>
                 </div>
                 <div className="flex items-center gap-1">
                   {[1,2,3,4,5].map(i => <Star key={i} size={16} className={i <= Math.round(expandedUser.rating) ? 'text-primary fill-primary' : 'text-muted-foreground/30'} />)}
-                  <span className="text-xs text-muted-foreground ml-1">{expandedUser.rating.toFixed(1)} ({expandedUser.ratingCount})</span>
+                  <span className="text-xs text-muted-foreground ml-1">{expandedUser.rating} ({expandedUser.rating_count})</span>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-2">
@@ -190,7 +271,7 @@ export default function Messages() {
 
       {/* Chat Window */}
       <AnimatePresence>
-        {chatUser && <ChatWindow user={chatUser} onClose={() => setChatUser(null)} />}
+        {chatUser && <ChatWindow user={chatUser} onClose={() => { setChatUser(null); fetchChats(); }} />}
       </AnimatePresence>
     </div>
   );
