@@ -3,12 +3,33 @@ import { Heart, MessageCircle, Handshake, Ban, Star, User } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
 import { t } from '@/lib/i18n';
 import { MockUser } from '@/lib/mockData';
+import type { Profile } from '@/hooks/useAuth';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import ChatWindow from '@/components/ChatWindow';
 
 interface UserCardProps {
   user: MockUser;
+}
+
+// Adapter to convert MockUser to Profile for ChatWindow
+function mockToProfile(u: MockUser): Profile {
+  return {
+    id: u.id,
+    user_id: u.id,
+    name: u.name,
+    age: u.age,
+    avatar_url: u.avatar,
+    city: u.city,
+    drinks: u.drinks,
+    alcohol_level: u.alcoholLevel,
+    interests: u.interests,
+    vibe: u.vibe,
+    about: u.about,
+    online: u.online,
+    rating: u.rating,
+    rating_count: u.ratingCount,
+  };
 }
 
 export default function UserCard({ user }: UserCardProps) {
@@ -188,7 +209,7 @@ export default function UserCard({ user }: UserCardProps) {
 
       {/* Chat window */}
       <AnimatePresence>
-        {showChat && <ChatWindow user={user} onClose={() => setShowChat(false)} />}
+        {showChat && <ChatWindow user={mockToProfile(user)} onClose={() => setShowChat(false)} />}
       </AnimatePresence>
     </>
   );

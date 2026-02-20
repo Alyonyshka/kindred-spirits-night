@@ -152,6 +152,19 @@ export const translations: Record<string, Record<Language, string>> = {
   // Friend of the week
   friendOfWeek: { ru: 'Друг недели', en: 'Friend of the week', ua: 'Друг тижня' },
 
+  // Auth
+  signIn: { ru: 'Войти', en: 'Sign In', ua: 'Увійти' },
+  signUp: { ru: 'Регистрация', en: 'Sign Up', ua: 'Реєстрація' },
+  password: { ru: 'Пароль', en: 'Password', ua: 'Пароль' },
+  haveAccount: { ru: 'Уже есть аккаунт?', en: 'Already have an account?', ua: 'Вже є акаунт?' },
+  noAccount: { ru: 'Нет аккаунта?', en: 'No account?', ua: 'Немає акаунту?' },
+  checkEmail: { ru: 'Проверьте почту для подтверждения!', en: 'Check your email to confirm!', ua: 'Перевірте пошту для підтвердження!' },
+  logOut: { ru: 'Выйти из аккаунта', en: 'Log out', ua: 'Вийти з акаунту' },
+  pending: { ru: 'В ожидании', en: 'Pending', ua: 'В очікуванні' },
+  confirmed: { ru: 'Подтверждено', en: 'Confirmed', ua: 'Підтверджено' },
+  declined: { ru: 'Отклонено', en: 'Declined', ua: 'Відхилено' },
+  confirmMeeting: { ru: 'Подтвердить встречу', en: 'Confirm meeting', ua: 'Підтвердити зустріч' },
+
   // Misc
   online: { ru: 'В сети', en: 'Online', ua: 'Онлайн' },
   offline: { ru: 'Не в сети', en: 'Offline', ua: 'Офлайн' },
@@ -161,6 +174,7 @@ export const translations: Record<string, Record<Language, string>> = {
   accept: { ru: 'Принять', en: 'Accept', ua: 'Прийняти' },
   decline: { ru: 'Отклонить', en: 'Decline', ua: 'Відхилити' },
   noResults: { ru: 'Ничего не найдено', en: 'Nothing found', ua: 'Нічого не знайдено' },
+  loading: { ru: 'Загрузка...', en: 'Loading...', ua: 'Завантаження...' },
 };
 
 export const cityKeys = [
