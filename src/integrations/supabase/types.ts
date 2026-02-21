@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      blocked_users: {
+        Row: {
+          blocked_id: string
+          blocker_id: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          blocked_id: string
+          blocker_id: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          blocked_id?: string
+          blocker_id?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: []
+      }
       event_participants: {
         Row: {
           event_id: string
@@ -228,6 +249,7 @@ export type Database = {
     }
     Functions: {
       get_my_profile_id: { Args: never; Returns: string }
+      is_blocked: { Args: { _user1: string; _user2: string }; Returns: boolean }
       is_meeting_participant: {
         Args: { _meeting_id: string }
         Returns: boolean

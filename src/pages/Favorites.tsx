@@ -4,8 +4,10 @@ import { useApp } from '@/contexts/AppContext';
 import { t } from '@/lib/i18n';
 import { mockUsers, MockUser, markFavoritesSeen } from '@/lib/mockData';
 import type { Profile } from '@/hooks/useAuth';
+import { useBlocking } from '@/hooks/useBlocking';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 import ChatWindow from '@/components/ChatWindow';
 
 function mockToProfile(u: MockUser): Profile {
@@ -19,20 +21,42 @@ function mockToProfile(u: MockUser): Profile {
 }
 
 export default function Favorites() {
-  const { language } = useApp();
+  const { language, user } = useApp();
+  const { isBlocked, isBlockedByMe, blockUser, unblockUser } = useBlocking();
   const favorites = mockUsers.slice(0, 3);
   const [expandedUser, setExpandedUser] = useState<MockUser | null>(null);
   const [chatUser, setChatUser] = useState<Profile | null>(null);
 
   useEffect(() => { markFavoritesSeen(); }, []);
 
-  const handleMessage = (user: MockUser) => {
+  const handleMessage = (u: MockUser) => {
+    if (isBlocked(u.id)) {
+      toast.error(t('blockedCannotAction', language));
+      return;
+    }
     setExpandedUser(null);
-    setChatUser(mockToProfile(user));
+    setChatUser(mockToProfile(u));
   };
 
-  const handleMeeting = () => toast.success(t('meetingRequestSent', language));
-  const handleBlock = () => toast.success(t('userBlocked', language));
+  const handleMeeting = async (u: MockUser) => {
+    if (!user) return;
+    if (isBlocked(u.id)) {
+      toast.error(t('blockedCannotAction', language));
+      return;
+    }
+    await supabase.from('meetings').insert({ requester_id: user.id, receiver_id: u.id });
+    toast.success(t('meetingRequestSent', language));
+  };
+
+  const handleToggleBlock = async (u: MockUser) => {
+    if (isBlockedByMe(u.id)) {
+      await unblockUser(u.id);
+      toast.success(t('userUnblocked', language));
+    } else {
+      await blockUser(u.id);
+      toast.success(t('userBlocked', language));
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -44,22 +68,22 @@ export default function Favorites() {
         </div>
       ) : (
         <div className="space-y-3">
-          {favorites.map(user => (
-            <div key={user.id} onClick={() => setExpandedUser(user)} className="glass-panel p-4 card-hover cursor-pointer group">
+          {favorites.map(u => (
+            <div key={u.id} onClick={() => setExpandedUser(u)} className="glass-panel p-4 card-hover cursor-pointer group">
               <div className="flex items-center gap-3">
                 <div className="w-14 h-14 rounded-full bg-secondary flex items-center justify-center border-2 border-primary/20 group-hover:avatar-glow transition-all duration-300">
-                  {user.avatar ? <img src={user.avatar} alt={user.name} className="w-full h-full object-cover rounded-full" /> : <User size={28} className="text-muted-foreground" />}
+                  {u.avatar ? <img src={u.avatar} alt={u.name} className="w-full h-full object-cover rounded-full" /> : <User size={28} className="text-muted-foreground" />}
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-semibold text-sm">{user.name}, {user.age}</h3>
-                  <p className="text-xs text-muted-foreground">{user.vibe}</p>
-                  <p className="text-xs text-muted-foreground">{t(user.city, language)}</p>
+                  <h3 className="font-semibold text-sm">{u.name}, {u.age}</h3>
+                  <p className="text-xs text-muted-foreground">{u.vibe}</p>
+                  <p className="text-xs text-muted-foreground">{t(u.city, language)}</p>
                 </div>
                 <div className="flex gap-1.5">
-                  <button onClick={(e) => { e.stopPropagation(); handleMessage(user); }} className="p-2 rounded-lg border border-border hover:border-primary/30 hover:text-primary transition-all" title={t('sendMessage', language)}>
+                  <button onClick={(e) => { e.stopPropagation(); handleMessage(u); }} className="p-2 rounded-lg border border-border hover:border-primary/30 hover:text-primary transition-all" title={t('sendMessage', language)}>
                     <MessageCircle size={16} />
                   </button>
-                  <button onClick={(e) => { e.stopPropagation(); handleMeeting(); }} className="p-2 rounded-lg border border-border hover:border-primary/30 hover:text-primary transition-all" title={t('proposeMeeting', language)}>
+                  <button onClick={(e) => { e.stopPropagation(); handleMeeting(u); }} className="p-2 rounded-lg border border-border hover:border-primary/30 hover:text-primary transition-all" title={t('proposeMeeting', language)}>
                     <Handshake size={16} />
                   </button>
                 </div>
@@ -97,8 +121,10 @@ export default function Favorites() {
               </div>
               <div className="grid grid-cols-3 gap-2">
                 <button onClick={() => handleMessage(expandedUser)} className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-medium border border-border hover:border-primary/30 text-muted-foreground hover:text-primary transition-all"><MessageCircle size={14} />{t('sendMessage', language)}</button>
-                <button onClick={() => handleMeeting()} className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-medium border border-border hover:border-primary/30 text-muted-foreground hover:text-primary transition-all"><Handshake size={14} />{t('proposeMeeting', language)}</button>
-                <button onClick={() => handleBlock()} className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-medium border border-destructive/30 text-muted-foreground hover:text-destructive transition-all"><Ban size={14} />{t('blockUser', language)}</button>
+                <button onClick={() => handleMeeting(expandedUser)} className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-medium border border-border hover:border-primary/30 text-muted-foreground hover:text-primary transition-all"><Handshake size={14} />{t('proposeMeeting', language)}</button>
+                <button onClick={() => handleToggleBlock(expandedUser)} className={`flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-medium border transition-all ${isBlockedByMe(expandedUser.id) ? 'border-destructive/30 text-destructive bg-destructive/10' : 'border-destructive/30 text-muted-foreground hover:text-destructive'}`}>
+                  <Ban size={14} />{t(isBlockedByMe(expandedUser.id) ? 'unblockUser' : 'blockUser', language)}
+                </button>
               </div>
             </motion.div>
           </motion.div>

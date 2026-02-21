@@ -13,6 +13,7 @@ import Events from "./pages/Events";
 import Profile from "./pages/Profile";
 import About from "./pages/About";
 import Auth from "./pages/Auth";
+import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 import { t } from "@/lib/i18n";
 
@@ -34,7 +35,10 @@ function AppRoutes() {
       <div className="min-h-screen bg-background dark">
         <Header />
         <main className="max-w-5xl mx-auto px-4 py-4 pb-24">
-          <Auth />
+          <Routes>
+            <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="*" element={<Auth />} />
+          </Routes>
         </main>
       </div>
     );
@@ -51,6 +55,7 @@ function AppRoutes() {
           <Route path="/events" element={<Events />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/about" element={<About />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/auth" element={<Navigate to="/" replace />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
