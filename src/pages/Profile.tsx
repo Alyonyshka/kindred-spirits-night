@@ -5,11 +5,22 @@ import { t, drinkKeys, alcoholLevelKeys, interestKeys, cityKeys } from '@/lib/i1
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import type { Profile as ProfileType } from '@/hooks/useAuth';
+import { useBlocking } from '@/hooks/useBlocking';
 import { motion, AnimatePresence } from 'framer-motion';
 import ChatWindow from '@/components/ChatWindow';
 
+interface MeetingWithProfile {
+  id: string;
+  requester_id: string;
+  receiver_id: string;
+  status: string;
+  created_at: string;
+  other_profile?: ProfileType;
+}
+
 export default function Profile() {
   const { language, city, setCity, profile, updateProfile, signOut, user } = useApp();
+  const { isBlocked, isBlockedByMe, blockUser, unblockUser } = useBlocking();
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [name, setName] = useState(profile?.name || '');
@@ -30,9 +41,8 @@ export default function Profile() {
   const [chatUser, setChatUser] = useState<ProfileType | null>(null);
 
   const [myEvents, setMyEvents] = useState<any[]>([]);
-  const [myMeetings, setMyMeetings] = useState<any[]>([]);
+  const [myMeetings, setMyMeetings] = useState<MeetingWithProfile[]>([]);
 
-  // Sync from profile when it loads
   useEffect(() => {
     if (profile) {
       setName(profile.name || '');
@@ -46,11 +56,10 @@ export default function Profile() {
     }
   }, [profile]);
 
-  // Fetch user's events and meetings
   useEffect(() => {
     if (!user) return;
     const fetchData = async () => {
-      // My events (as participant)
+      // My events
       const { data: participations } = await supabase
         .from('event_participants')
         .select('event_id')
@@ -61,19 +70,32 @@ export default function Profile() {
         setMyEvents(events || []);
       }
 
-      // My meetings (confirmed)
+      // My meetings - ALL that I initiated (any status)
       const { data: meetings } = await supabase
         .from('meetings')
         .select('*')
-        .or(`requester_id.eq.${user.id},receiver_id.eq.${user.id}`)
-        .eq('status', 'confirmed');
+        .eq('requester_id', user.id)
+        .order('created_at', { ascending: false });
+
       if (meetings && meetings.length > 0) {
-        const otherIds = meetings.map(m => m.requester_id === user.id ? m.receiver_id : m.requester_id);
+        const otherIds = meetings.map(m => m.receiver_id);
         const { data: profiles } = await supabase.from('profiles').select('*').in('user_id', otherIds);
-        setMyMeetings(profiles || []);
+        const enriched: MeetingWithProfile[] = meetings.map(m => ({
+          ...m,
+          status: m.status || 'pending',
+          other_profile: profiles?.find(p => p.user_id === m.receiver_id) as ProfileType | undefined,
+        }));
+        setMyMeetings(enriched);
       }
     };
     fetchData();
+
+    const channel = supabase
+      .channel('profile-meetings-rt')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'meetings' }, () => fetchData())
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   }, [user?.id]);
 
   const toggleDrink = (d: string) => setDrinks(prev => prev.includes(d) ? prev.filter(x => x !== d) : [...prev, d]);
@@ -107,8 +129,40 @@ export default function Profile() {
   };
 
   const handleMessageUser = (u: ProfileType) => {
+    if (isBlocked(u.user_id)) {
+      toast.error(t('blockedCannotAction', language));
+      return;
+    }
     setExpandedUser(null);
     setChatUser(u);
+  };
+
+  const handleMeetingRequest = async (u: ProfileType) => {
+    if (!user) return;
+    if (isBlocked(u.user_id)) {
+      toast.error(t('blockedCannotAction', language));
+      return;
+    }
+    await supabase.from('meetings').insert({ requester_id: user.id, receiver_id: u.user_id });
+    toast.success(t('meetingRequestSent', language));
+  };
+
+  const handleToggleBlock = async (u: ProfileType) => {
+    if (isBlockedByMe(u.user_id)) {
+      await unblockUser(u.user_id);
+      toast.success(t('userUnblocked', language));
+    } else {
+      await blockUser(u.user_id);
+      toast.success(t('userBlocked', language));
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'confirmed': return 'text-emerald-400';
+      case 'declined': return 'text-destructive';
+      default: return 'text-muted-foreground';
+    }
   };
 
   const shortcuts = [
@@ -146,8 +200,10 @@ export default function Profile() {
         </div>
         <div className="grid grid-cols-3 gap-2">
           <button onClick={() => handleMessageUser(u)} className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-medium border border-border hover:border-primary/30 text-muted-foreground hover:text-primary transition-all"><MessageCircle size={14} />{t('sendMessage', language)}</button>
-          <button onClick={() => toast.success(t('meetingRequestSent', language))} className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-medium border border-border hover:border-primary/30 text-muted-foreground hover:text-primary transition-all"><Handshake size={14} />{t('proposeMeeting', language)}</button>
-          <button onClick={() => toast.success(t('userBlocked', language))} className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-medium border border-destructive/30 text-muted-foreground hover:text-destructive transition-all"><Ban size={14} />{t('blockUser', language)}</button>
+          <button onClick={() => handleMeetingRequest(u)} className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-medium border border-border hover:border-primary/30 text-muted-foreground hover:text-primary transition-all"><Handshake size={14} />{t('proposeMeeting', language)}</button>
+          <button onClick={() => handleToggleBlock(u)} className={`flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-medium border transition-all ${isBlockedByMe(u.user_id) ? 'border-destructive/30 text-destructive bg-destructive/10' : 'border-destructive/30 text-muted-foreground hover:text-destructive'}`}>
+            <Ban size={14} />{t(isBlockedByMe(u.user_id) ? 'unblockUser' : 'blockUser', language)}
+          </button>
         </div>
       </motion.div>
     </motion.div>
@@ -281,7 +337,7 @@ export default function Profile() {
         )}
       </AnimatePresence>
 
-      {/* My Meetings Modal */}
+      {/* My Meetings Modal - shows ALL initiated meetings with status */}
       <AnimatePresence>
         {showMeetingsModal && (
           <motion.div className="fixed inset-0 z-[100] flex items-center justify-center p-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
@@ -295,14 +351,17 @@ export default function Profile() {
                 <p className="text-center text-muted-foreground py-8">{t('noMeetings', language)}</p>
               ) : (
                 <div className="space-y-3">
-                  {myMeetings.map((u: any) => (
-                    <div key={u.id} className="glass-panel p-3 flex items-center gap-3 card-hover cursor-pointer" onClick={() => { setShowMeetingsModal(false); setExpandedUser(u); }}>
+                  {myMeetings.map((meeting) => (
+                    <div key={meeting.id} className="glass-panel p-3 flex items-center gap-3 card-hover cursor-pointer" onClick={() => { if (meeting.other_profile) { setShowMeetingsModal(false); setExpandedUser(meeting.other_profile); } }}>
                       <div className="w-12 h-12 rounded-full bg-secondary flex items-center justify-center border border-border overflow-hidden">
-                        {u.avatar_url ? <img src={u.avatar_url} alt={u.name} className="w-full h-full object-cover rounded-full" /> : <User size={24} className="text-muted-foreground" />}
+                        {meeting.other_profile?.avatar_url ? <img src={meeting.other_profile.avatar_url} alt={meeting.other_profile.name} className="w-full h-full object-cover rounded-full" /> : <User size={24} className="text-muted-foreground" />}
                       </div>
                       <div className="flex-1">
-                        <h3 className="font-semibold text-sm">{u.name}, {u.age}</h3>
-                        <p className="text-xs text-muted-foreground">{u.vibe}</p>
+                        <h3 className="font-semibold text-sm">{meeting.other_profile?.name || 'User'}</h3>
+                        <p className="text-xs text-muted-foreground">{new Date(meeting.created_at).toLocaleDateString()}</p>
+                        <p className={`text-xs font-medium ${getStatusColor(meeting.status)}`}>
+                          {t(meeting.status, language)}
+                        </p>
                       </div>
                     </div>
                   ))}

@@ -4,6 +4,7 @@ import { useApp } from '@/contexts/AppContext';
 import { t } from '@/lib/i18n';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useBlocking } from '@/hooks/useBlocking';
 import { motion, AnimatePresence } from 'framer-motion';
 import ChatWindow from '@/components/ChatWindow';
 import type { Profile } from '@/hooks/useAuth';
@@ -29,6 +30,7 @@ interface ChatEntry {
 
 export default function Messages() {
   const { language, user } = useApp();
+  const { isBlocked, isBlockedByMe, blockUser, unblockUser } = useBlocking();
   const [chatUser, setChatUser] = useState<Profile | null>(null);
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [chats, setChats] = useState<ChatEntry[]>([]);
@@ -45,7 +47,6 @@ export default function Messages() {
 
     if (!data) return;
 
-    // Fetch profiles for meetings
     const userIds = [...new Set(data.flatMap(m => [m.requester_id, m.receiver_id]))];
     const { data: profiles } = await supabase.from('profiles').select('*').in('user_id', userIds);
 
@@ -61,7 +62,6 @@ export default function Messages() {
   const fetchChats = async () => {
     if (!user) return;
 
-    // Get distinct conversations from messages
     const { data: msgs } = await supabase
       .from('messages')
       .select('*')
@@ -70,7 +70,6 @@ export default function Messages() {
 
     if (!msgs || msgs.length === 0) { setChats([]); return; }
 
-    // Group by other user
     const chatMap = new Map<string, { last: typeof msgs[0]; unread: number }>();
     for (const msg of msgs) {
       const otherId = msg.sender_id === user.id ? msg.receiver_id : msg.sender_id;
@@ -125,7 +124,10 @@ export default function Messages() {
   };
 
   const handleOpenChat = async (profile: Profile) => {
-    // Mark messages as read
+    if (isBlocked(profile.user_id)) {
+      toast.error(t('blockedCannotAction', language));
+      return;
+    }
     if (user) {
       await supabase.from('messages').update({ read: true }).eq('sender_id', profile.user_id).eq('receiver_id', user.id).eq('read', false);
     }
@@ -138,8 +140,32 @@ export default function Messages() {
   };
 
   const handleMessageUser = (profile: Profile) => {
+    if (isBlocked(profile.user_id)) {
+      toast.error(t('blockedCannotAction', language));
+      return;
+    }
     setExpandedUser(null);
     setChatUser(profile);
+  };
+
+  const handleMeetingRequest = async (profile: Profile) => {
+    if (!user) return;
+    if (isBlocked(profile.user_id)) {
+      toast.error(t('blockedCannotAction', language));
+      return;
+    }
+    await supabase.from('meetings').insert({ requester_id: user.id, receiver_id: profile.user_id });
+    toast.success(t('meetingRequestSent', language));
+  };
+
+  const handleToggleBlock = async (profile: Profile) => {
+    if (isBlockedByMe(profile.user_id)) {
+      await unblockUser(profile.user_id);
+      toast.success(t('userUnblocked', language));
+    } else {
+      await blockUser(profile.user_id);
+      toast.success(t('userBlocked', language));
+    }
   };
 
   if (loading) {
@@ -257,11 +283,11 @@ export default function Messages() {
                 <button onClick={() => handleMessageUser(expandedUser)} className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-medium border border-border hover:border-primary/30 text-muted-foreground hover:text-primary transition-all">
                   <MessageCircle size={14} />{t('sendMessage', language)}
                 </button>
-                <button onClick={() => { toast.success(t('meetingRequestSent', language)); }} className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-medium border border-border hover:border-primary/30 text-muted-foreground hover:text-primary transition-all">
+                <button onClick={() => handleMeetingRequest(expandedUser)} className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-medium border border-border hover:border-primary/30 text-muted-foreground hover:text-primary transition-all">
                   <Handshake size={14} />{t('proposeMeeting', language)}
                 </button>
-                <button onClick={() => { toast.success(t('userBlocked', language)); }} className="col-span-2 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-medium border border-destructive/30 text-muted-foreground hover:text-destructive transition-all">
-                  <Ban size={14} />{t('blockUser', language)}
+                <button onClick={() => handleToggleBlock(expandedUser)} className={`col-span-2 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-medium border transition-all ${isBlockedByMe(expandedUser.user_id) ? 'border-destructive/30 text-destructive bg-destructive/10' : 'border-destructive/30 text-muted-foreground hover:text-destructive'}`}>
+                  <Ban size={14} />{t(isBlockedByMe(expandedUser.user_id) ? 'unblockUser' : 'blockUser', language)}
                 </button>
               </div>
             </motion.div>

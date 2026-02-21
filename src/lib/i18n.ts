@@ -164,6 +164,14 @@ export const translations: Record<string, Record<Language, string>> = {
   confirmed: { ru: 'Подтверждено', en: 'Confirmed', ua: 'Підтверджено' },
   declined: { ru: 'Отклонено', en: 'Declined', ua: 'Відхилено' },
   confirmMeeting: { ru: 'Подтвердить встречу', en: 'Confirm meeting', ua: 'Підтвердити зустріч' },
+  forgotPassword: { ru: 'Забыли пароль?', en: 'Forgot password?', ua: 'Забули пароль?' },
+  resetPassword: { ru: 'Сбросить пароль', en: 'Reset password', ua: 'Скинути пароль' },
+  newPassword: { ru: 'Новый пароль', en: 'New password', ua: 'Новий пароль' },
+  resetEmailSent: { ru: 'Ссылка для сброса пароля отправлена на почту!', en: 'Password reset link sent to your email!', ua: 'Посилання для скидання пароля надіслано на пошту!' },
+  passwordUpdated: { ru: 'Пароль успешно обновлён!', en: 'Password updated successfully!', ua: 'Пароль успішно оновлено!' },
+  setNewPassword: { ru: 'Установить новый пароль', en: 'Set new password', ua: 'Встановити новий пароль' },
+  blockedCannotAction: { ru: 'Действие невозможно: пользователь заблокирован', en: 'Action blocked: user is blocked', ua: 'Дію заблоковано: користувача заблоковано' },
+  sent: { ru: 'Отправлено', en: 'Sent', ua: 'Надіслано' },
 
   // Misc
   online: { ru: 'В сети', en: 'Online', ua: 'Онлайн' },
