@@ -5,6 +5,7 @@ import { t } from '@/lib/i18n';
 import { MockUser } from '@/lib/mockData';
 import type { Profile } from '@/hooks/useAuth';
 import { useBlocking } from '@/hooks/useBlocking';
+import { useFavorites } from '@/hooks/useFavorites';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -20,6 +21,11 @@ function mockToProfile(u: MockUser): Profile {
   };
 }
 
+// Check if a string is a valid UUID
+function isValidUUID(str: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+}
+
 interface UserCardProps {
   user: MockUser;
 }
@@ -27,25 +33,35 @@ interface UserCardProps {
 export default function UserCard({ user: userProp }: UserCardProps) {
   const { language, user: currentUser } = useApp();
   const { isBlocked, isBlockedByMe, blockUser, unblockUser } = useBlocking();
+  const { isFavorite, toggleFavorite } = useFavorites();
   const [expanded, setExpanded] = useState(false);
-  const [isFav, setIsFav] = useState(false);
   const [showChat, setShowChat] = useState(false);
 
+  const isMockUser = !isValidUUID(userProp.id);
   const fullStars = Math.round(userProp.rating);
+  const isFav = !isMockUser && isFavorite(userProp.id);
 
-  const handleFav = (e: React.MouseEvent) => {
+  const handleFav = async (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (isMockUser) {
+      toast.error('Действие недоступно для демо-профилей');
+      return;
+    }
     if (isBlocked(userProp.id)) {
       toast.error(t('blockedCannotAction', language));
       return;
     }
-    setIsFav(!isFav);
+    await toggleFavorite(userProp.id);
     toast.success(t(isFav ? 'removedFromFavorites' : 'addedToFavorites', language));
   };
 
   const handleMeeting = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!currentUser) return;
+    if (isMockUser) {
+      toast.error('Действие недоступно для демо-профилей');
+      return;
+    }
     if (isBlocked(userProp.id)) {
       toast.error(t('blockedCannotAction', language));
       return;
@@ -56,6 +72,10 @@ export default function UserCard({ user: userProp }: UserCardProps) {
 
   const handleBlock = async (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (isMockUser) {
+      toast.error('Действие недоступно для демо-профилей');
+      return;
+    }
     if (isBlockedByMe(userProp.id)) {
       await unblockUser(userProp.id);
       toast.success(t('userUnblocked', language));
@@ -67,6 +87,10 @@ export default function UserCard({ user: userProp }: UserCardProps) {
 
   const handleMessage = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (isMockUser) {
+      toast.error('Действие недоступно для демо-профилей');
+      return;
+    }
     if (isBlocked(userProp.id)) {
       toast.error(t('blockedCannotAction', language));
       return;
@@ -201,11 +225,11 @@ export default function UserCard({ user: userProp }: UserCardProps) {
                 <button
                   onClick={handleBlock}
                   className={`flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-medium border transition-all ${
-                    isBlockedByMe(userProp.id) ? 'border-destructive/30 text-destructive bg-destructive/10' : 'border-destructive/30 text-muted-foreground hover:text-destructive'
+                    !isMockUser && isBlockedByMe(userProp.id) ? 'border-destructive/30 text-destructive bg-destructive/10' : 'border-destructive/30 text-muted-foreground hover:text-destructive'
                   }`}
                 >
                   <Ban size={14} />
-                  {t(isBlockedByMe(userProp.id) ? 'unblockUser' : 'blockUser', language)}
+                  {t(!isMockUser && isBlockedByMe(userProp.id) ? 'unblockUser' : 'blockUser', language)}
                 </button>
               </div>
             </motion.div>

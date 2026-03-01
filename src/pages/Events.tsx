@@ -1,10 +1,14 @@
 import { useState, useEffect } from 'react';
-import { Plus, Search, Calendar, MapPin, Users, Clock, X } from 'lucide-react';
+import { Plus, Search, Calendar, MapPin, Users, Clock, X, User, MessageCircle, Handshake, Ban, Star, Heart } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
 import { t, drinkKeys } from '@/lib/i18n';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import type { Profile } from '@/hooks/useAuth';
+import { useBlocking } from '@/hooks/useBlocking';
+import { useFavorites } from '@/hooks/useFavorites';
+import ChatWindow from '@/components/ChatWindow';
 
 interface DbEvent {
   id: string;
@@ -24,11 +28,16 @@ interface DbEvent {
 
 export default function Events() {
   const { language, user } = useApp();
+  const { isBlocked, isBlockedByMe, blockUser, unblockUser } = useBlocking();
+  const { isFavorite, toggleFavorite } = useFavorites();
   const [search, setSearch] = useState('');
   const [events, setEvents] = useState<DbEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [showParticipants, setShowParticipants] = useState<string | null>(null);
+  const [participantProfiles, setParticipantProfiles] = useState<Profile[]>([]);
+  const [expandedUser, setExpandedUser] = useState<Profile | null>(null);
+  const [chatUser, setChatUser] = useState<Profile | null>(null);
 
   const [newTitle, setNewTitle] = useState('');
   const [newDesc, setNewDesc] = useState('');
@@ -46,7 +55,6 @@ export default function Events() {
 
     if (!eventsData) { setLoading(false); return; }
 
-    // Get participant counts and user's participation
     const { data: participants } = await supabase
       .from('event_participants')
       .select('event_id, user_id');
@@ -63,14 +71,11 @@ export default function Events() {
 
   useEffect(() => {
     fetchEvents();
-
-    // Realtime subscriptions
     const eventsChannel = supabase
       .channel('events-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'events' }, () => fetchEvents())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'event_participants' }, () => fetchEvents())
       .subscribe();
-
     return () => { supabase.removeChannel(eventsChannel); };
   }, [user?.id]);
 
@@ -82,7 +87,6 @@ export default function Events() {
   const handleJoin = async (eventId: string) => {
     const event = events.find(e => e.id === eventId);
     if (!event || !user) return;
-
     if (event.joined) {
       await supabase.from('event_participants').delete().eq('event_id', eventId).eq('user_id', user.id);
       toast.success(t('leftEvent', language));
@@ -108,13 +112,70 @@ export default function Events() {
     }).select().single();
 
     if (error) { toast.error(error.message); return; }
-    // Auto-join as creator
     if (data) {
       await supabase.from('event_participants').insert({ event_id: data.id, user_id: user.id, status: 'confirmed' });
     }
     setShowCreate(false);
     setNewTitle(''); setNewDesc(''); setNewDate(''); setNewTime(''); setNewLocation(''); setNewDrink('beer'); setNewMax('8');
     toast.success(t('eventCreated', language));
+  };
+
+  const handleShowParticipants = async (eventId: string) => {
+    if (showParticipants === eventId) {
+      setShowParticipants(null);
+      setParticipantProfiles([]);
+      return;
+    }
+    const { data: parts } = await supabase
+      .from('event_participants')
+      .select('user_id')
+      .eq('event_id', eventId);
+    if (parts && parts.length > 0) {
+      const userIds = parts.map(p => p.user_id);
+      const { data: profiles } = await supabase.from('profiles').select('*').in('user_id', userIds);
+      setParticipantProfiles((profiles || []) as Profile[]);
+    } else {
+      setParticipantProfiles([]);
+    }
+    setShowParticipants(eventId);
+  };
+
+  const handleMessageUser = (profile: Profile) => {
+    if (isBlocked(profile.user_id)) {
+      toast.error(t('blockedCannotAction', language));
+      return;
+    }
+    setExpandedUser(null);
+    setChatUser(profile);
+  };
+
+  const handleMeetingRequest = async (profile: Profile) => {
+    if (!user) return;
+    if (isBlocked(profile.user_id)) {
+      toast.error(t('blockedCannotAction', language));
+      return;
+    }
+    await supabase.from('meetings').insert({ requester_id: user.id, receiver_id: profile.user_id });
+    toast.success(t('meetingRequestSent', language));
+  };
+
+  const handleToggleBlock = async (profile: Profile) => {
+    if (isBlockedByMe(profile.user_id)) {
+      await unblockUser(profile.user_id);
+      toast.success(t('userUnblocked', language));
+    } else {
+      await blockUser(profile.user_id);
+      toast.success(t('userBlocked', language));
+    }
+  };
+
+  const handleToggleFavorite = async (profile: Profile) => {
+    if (isBlocked(profile.user_id)) {
+      toast.error(t('blockedCannotAction', language));
+      return;
+    }
+    await toggleFavorite(profile.user_id);
+    toast.success(t(isFavorite(profile.user_id) ? 'removedFromFavorites' : 'addedToFavorites', language));
   };
 
   const inputClass = "w-full px-4 py-2.5 rounded-2xl bg-secondary/30 border border-border text-sm placeholder:text-muted-foreground focus:outline-none focus:amber-border-glow transition-all";
@@ -129,17 +190,12 @@ export default function Events() {
         <div className="relative flex-1">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            type="text" value={search} onChange={(e) => setSearch(e.target.value)}
             placeholder={t('searchEvents', language)}
             className="w-full pl-9 pr-3 py-2.5 rounded-2xl glass-panel border border-border bg-secondary/30 text-sm placeholder:text-muted-foreground focus:outline-none focus:amber-border-glow transition-all"
           />
         </div>
-        <button
-          onClick={() => setShowCreate(true)}
-          className="flex items-center gap-1.5 px-4 py-2.5 rounded-2xl bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
-        >
+        <button onClick={() => setShowCreate(true)} className="flex items-center gap-1.5 px-4 py-2.5 rounded-2xl bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors">
           <Plus size={16} />
           <span className="hidden sm:inline">{t('createEvent', language)}</span>
         </button>
@@ -190,15 +246,31 @@ export default function Events() {
                   {t(event.joined ? 'leave' : 'join', language)}
                 </button>
                 <button
-                  onClick={() => setShowParticipants(showParticipants === event.id ? null : event.id)}
+                  onClick={() => handleShowParticipants(event.id)}
                   className="px-4 py-2 rounded-xl text-xs font-medium border border-border text-muted-foreground hover:text-foreground transition-colors"
                 >
                   {t('participants', language)} ({event.participant_count || 0})
                 </button>
               </div>
+              {/* Participants list */}
               {showParticipants === event.id && (
-                <div className="glass-panel p-3 text-xs text-muted-foreground">
-                  {t('participants', language)}: {event.participant_count || 0} / {event.max_participants}
+                <div className="glass-panel p-3 space-y-2">
+                  {participantProfiles.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">{t('noResults', language)}</p>
+                  ) : (
+                    participantProfiles.map(p => (
+                      <div key={p.user_id} className="flex items-center gap-3 p-2 rounded-xl hover:bg-accent/30 transition-colors cursor-pointer" onClick={() => setExpandedUser(p)}>
+                        <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center border border-border overflow-hidden">
+                          {p.avatar_url ? <img src={p.avatar_url} alt={p.name} className="w-full h-full object-cover rounded-full" /> : <User size={20} className="text-muted-foreground" />}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <span className="font-medium text-sm">{p.name}, {p.age}</span>
+                          <p className="text-xs text-muted-foreground truncate">{p.vibe}</p>
+                        </div>
+                        <span className={`w-2 h-2 rounded-full ${p.online ? 'bg-emerald-400' : 'bg-muted-foreground/40'}`} />
+                      </div>
+                    ))
+                  )}
                 </div>
               )}
             </div>
@@ -206,27 +278,67 @@ export default function Events() {
         </div>
       )}
 
+      {/* Profile card modal */}
+      <AnimatePresence>
+        {expandedUser && (
+          <motion.div className="fixed inset-0 z-[100] flex items-center justify-center p-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <div className="absolute inset-0 bg-background/70 backdrop-blur-sm" onClick={() => setExpandedUser(null)} />
+            <motion.div className="relative glass-panel-strong p-6 w-full max-w-sm" initial={{ scale: 0.85, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.85, opacity: 0 }}>
+              <div className="flex flex-col items-center text-center mb-4">
+                <div className="w-20 h-20 rounded-full bg-secondary flex items-center justify-center border-2 border-primary/30 avatar-glow mb-3 overflow-hidden">
+                  {expandedUser.avatar_url ? <img src={expandedUser.avatar_url} alt={expandedUser.name} className="w-full h-full object-cover rounded-full" /> : <User size={36} className="text-muted-foreground" />}
+                </div>
+                <h2 className="text-lg font-bold">{expandedUser.name}, {expandedUser.age}</h2>
+                <p className="text-sm text-muted-foreground">{t(expandedUser.city, language)}</p>
+                <p className="text-sm text-primary mt-1">{expandedUser.vibe}</p>
+              </div>
+              <div className="space-y-3 mb-4">
+                <div><p className="text-xs text-muted-foreground mb-1">{t('aboutMe', language)}</p><p className="text-sm">{expandedUser.about}</p></div>
+                <div><p className="text-xs text-muted-foreground mb-1">{t('drinks', language)}</p>
+                  <div className="flex flex-wrap gap-1">{(expandedUser.drinks || []).map(d => <span key={d} className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs border border-primary/20">{t(d, language)}</span>)}</div>
+                </div>
+                <div><p className="text-xs text-muted-foreground mb-1">{t('interests', language)}</p>
+                  <div className="flex flex-wrap gap-1">{(expandedUser.interests || []).map(i => <span key={i} className="px-2 py-0.5 rounded-full bg-accent text-accent-foreground text-xs">{t(i, language)}</span>)}</div>
+                </div>
+                <div className="flex items-center gap-1">
+                  {[1,2,3,4,5].map(i => <Star key={i} size={16} className={i <= Math.round(expandedUser.rating) ? 'text-primary fill-primary' : 'text-muted-foreground/30'} />)}
+                  <span className="text-xs text-muted-foreground ml-1">{expandedUser.rating?.toFixed(1)} ({expandedUser.rating_count})</span>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <button onClick={() => handleToggleFavorite(expandedUser)} className={`flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-medium transition-all border ${isFavorite(expandedUser.user_id) ? 'bg-primary/15 text-primary border-primary/30' : 'border-border hover:border-primary/30 text-muted-foreground hover:text-primary'}`}>
+                  <Heart size={14} className={isFavorite(expandedUser.user_id) ? 'fill-primary' : ''} />
+                  {t('addToFavorites', language)}
+                </button>
+                <button onClick={() => handleMessageUser(expandedUser)} className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-medium border border-border hover:border-primary/30 text-muted-foreground hover:text-primary transition-all">
+                  <MessageCircle size={14} />{t('sendMessage', language)}
+                </button>
+                <button onClick={() => handleMeetingRequest(expandedUser)} className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-medium border border-border hover:border-primary/30 text-muted-foreground hover:text-primary transition-all">
+                  <Handshake size={14} />{t('proposeMeeting', language)}
+                </button>
+                <button onClick={() => handleToggleBlock(expandedUser)} className={`flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-medium border transition-all ${isBlockedByMe(expandedUser.user_id) ? 'border-destructive/30 text-destructive bg-destructive/10' : 'border-destructive/30 text-muted-foreground hover:text-destructive'}`}>
+                  <Ban size={14} />{t(isBlockedByMe(expandedUser.user_id) ? 'unblockUser' : 'blockUser', language)}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Chat Window */}
+      <AnimatePresence>
+        {chatUser && <ChatWindow user={chatUser} onClose={() => setChatUser(null)} />}
+      </AnimatePresence>
+
       {/* Create Event Modal */}
       <AnimatePresence>
         {showCreate && (
-          <motion.div
-            className="fixed inset-0 z-[100] flex items-center justify-center p-4"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          >
+          <motion.div className="fixed inset-0 z-[100] flex items-center justify-center p-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             <div className="absolute inset-0 bg-background/60 backdrop-blur-sm" onClick={() => setShowCreate(false)} />
-            <motion.div
-              className="relative glass-panel-strong p-6 w-full max-w-md max-h-[85vh] overflow-y-auto scrollbar-hide"
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-            >
+            <motion.div className="relative glass-panel-strong p-6 w-full max-w-md max-h-[85vh] overflow-y-auto scrollbar-hide" initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}>
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-bold amber-glow">{t('createEvent', language)}</h2>
-                <button onClick={() => setShowCreate(false)} className="p-1 rounded-lg hover:bg-accent transition-colors">
-                  <X size={20} />
-                </button>
+                <button onClick={() => setShowCreate(false)} className="p-1 rounded-lg hover:bg-accent transition-colors"><X size={20} /></button>
               </div>
               <div className="space-y-3">
                 <input type="text" value={newTitle} onChange={e => setNewTitle(e.target.value)} placeholder={t('eventName', language)} className={inputClass} />
@@ -238,9 +350,7 @@ export default function Events() {
                 <input type="text" value={newLocation} onChange={e => setNewLocation(e.target.value)} placeholder={t('eventLocation', language)} className={inputClass} />
                 <div className="grid grid-cols-2 gap-2">
                   <select value={newDrink} onChange={e => setNewDrink(e.target.value)} className={inputClass}>
-                    {drinkKeys.map(d => (
-                      <option key={d} value={d}>{t(d, language)}</option>
-                    ))}
+                    {drinkKeys.map(d => (<option key={d} value={d}>{t(d, language)}</option>))}
                   </select>
                   <input type="number" value={newMax} onChange={e => setNewMax(e.target.value)} min={2} max={99} placeholder={t('maxParticipants', language)} className={inputClass} />
                 </div>
