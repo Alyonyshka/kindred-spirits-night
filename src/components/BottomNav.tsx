@@ -3,7 +3,7 @@ import { Search, MessageCircle, Heart, Calendar, User } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
 import { t } from '@/lib/i18n';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { getUnreadCount, getNewEventsCount, getNewFavoritesCount } from '@/lib/mockData';
+import { supabase } from '@/integrations/supabase/client';
 
 const tabs = [
   { id: 'search', icon: Search, path: '/', labelKey: 'navSearch' },
@@ -14,25 +14,50 @@ const tabs = [
 ];
 
 export default function BottomNav() {
-  const { language } = useApp();
+  const { language, user } = useApp();
   const navigate = useNavigate();
   const location = useLocation();
   const [badges, setBadges] = useState({ messages: 0, favorites: 0, events: 0 });
 
   useEffect(() => {
-    setBadges({
-      messages: getUnreadCount(),
-      favorites: getNewFavoritesCount(),
-      events: getNewEventsCount(),
-    });
+    if (!user) return;
+
+    const fetchBadges = async () => {
+      // Unread messages count
+      const { count: unreadMessages } = await supabase
+        .from('messages')
+        .select('*', { count: 'exact', head: true })
+        .eq('receiver_id', user.id)
+        .eq('read', false);
+
+      setBadges(prev => ({
+        ...prev,
+        messages: location.pathname === '/messages' ? 0 : (unreadMessages || 0),
+      }));
+    };
+
+    fetchBadges();
+
+    // Realtime subscription for messages
+    const channel = supabase
+      .channel('bottom-nav-badges')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, () => fetchBadges())
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [user?.id, location.pathname]);
+
+  // Clear message badge when on messages page
+  useEffect(() => {
+    if (location.pathname === '/messages') {
+      setBadges(prev => ({ ...prev, messages: 0 }));
+    }
   }, [location.pathname]);
 
   const activeId = tabs.find(tab => tab.path === location.pathname)?.id || 'search';
 
   const getBadge = (id: string) => {
     if (id === 'messages') return badges.messages;
-    if (id === 'favorites') return badges.favorites;
-    if (id === 'events') return badges.events;
     return 0;
   };
 
