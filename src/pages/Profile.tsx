@@ -59,7 +59,6 @@ export default function Profile() {
   useEffect(() => {
     if (!user) return;
     const fetchData = async () => {
-      // My events
       const { data: participations } = await supabase
         .from('event_participants')
         .select('event_id')
@@ -70,22 +69,24 @@ export default function Profile() {
         setMyEvents(events || []);
       }
 
-      // My meetings - ALL that I initiated (any status)
+      // My meetings - ALL where I'm involved
       const { data: meetings } = await supabase
         .from('meetings')
         .select('*')
-        .eq('requester_id', user.id)
+        .or(`requester_id.eq.${user.id},receiver_id.eq.${user.id}`)
         .order('created_at', { ascending: false });
 
       if (meetings && meetings.length > 0) {
-        const otherIds = meetings.map(m => m.receiver_id);
+        const otherIds = meetings.map(m => m.requester_id === user.id ? m.receiver_id : m.requester_id);
         const { data: profiles } = await supabase.from('profiles').select('*').in('user_id', otherIds);
         const enriched: MeetingWithProfile[] = meetings.map(m => ({
           ...m,
           status: m.status || 'pending',
-          other_profile: profiles?.find(p => p.user_id === m.receiver_id) as ProfileType | undefined,
+          other_profile: profiles?.find(p => p.user_id === (m.requester_id === user.id ? m.receiver_id : m.requester_id)) as ProfileType | undefined,
         }));
         setMyMeetings(enriched);
+      } else {
+        setMyMeetings([]);
       }
     };
     fetchData();
@@ -155,6 +156,12 @@ export default function Profile() {
       await blockUser(u.user_id);
       toast.success(t('userBlocked', language));
     }
+  };
+
+  const handleDeleteMeeting = async (meetingId: string) => {
+    await supabase.from('meetings').delete().eq('id', meetingId);
+    setMyMeetings(prev => prev.filter(m => m.id !== meetingId));
+    toast.success(t('msgDeleted', language));
   };
 
   const getStatusColor = (status: string) => {
@@ -337,7 +344,7 @@ export default function Profile() {
         )}
       </AnimatePresence>
 
-      {/* My Meetings Modal - shows ALL initiated meetings with status */}
+      {/* My Meetings Modal */}
       <AnimatePresence>
         {showMeetingsModal && (
           <motion.div className="fixed inset-0 z-[100] flex items-center justify-center p-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
@@ -363,6 +370,12 @@ export default function Profile() {
                           {t(meeting.status, language)}
                         </p>
                       </div>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleDeleteMeeting(meeting.id); }}
+                        className="p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                      >
+                        <X size={16} />
+                      </button>
                     </div>
                   ))}
                 </div>

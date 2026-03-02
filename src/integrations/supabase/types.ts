@@ -264,6 +264,33 @@ export type Database = {
         }
         Relationships: []
       }
+      user_ratings: {
+        Row: {
+          created_at: string
+          id: string
+          rated_id: string
+          rater_id: string
+          rating: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          rated_id: string
+          rater_id: string
+          rating: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          rated_id?: string
+          rater_id?: string
+          rating?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
