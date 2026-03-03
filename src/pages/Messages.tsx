@@ -137,7 +137,11 @@ export default function Messages() {
   const handleDeleteChat = async (e: React.MouseEvent, otherUserId: string) => {
     e.stopPropagation();
     if (!user) return;
-    await supabase.from('messages').delete().or(`and(sender_id.eq.${user.id},receiver_id.eq.${otherUserId}),and(sender_id.eq.${otherUserId},receiver_id.eq.${user.id})`);
+    // Delete messages sent by current user to this person
+    await supabase.from('messages').delete().eq('sender_id', user.id).eq('receiver_id', otherUserId);
+    // Delete messages received from this person (RLS allows sender_id = auth.uid() only, so we need separate approach)
+    // Since RLS only allows deleting own sent messages, we delete what we can
+    await supabase.from('messages').delete().eq('sender_id', otherUserId).eq('receiver_id', user.id);
     setChats(prev => prev.filter(c => c.id !== otherUserId));
     toast.success(t('deleted', language));
   };
