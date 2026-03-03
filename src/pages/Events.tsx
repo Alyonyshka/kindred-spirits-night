@@ -97,6 +97,20 @@ export default function Events() {
     }
   };
 
+  const handleDeleteEvent = async (eventId: string) => {
+    if (!user) return;
+    const event = events.find(e => e.id === eventId);
+    if (!event) return;
+    if (event.creator_id === user.id) {
+      await supabase.from('event_participants').delete().eq('event_id', eventId);
+      await supabase.from('events').delete().eq('id', eventId);
+      toast.success(t('msgDeleted', language));
+    } else {
+      await supabase.from('event_participants').delete().eq('event_id', eventId).eq('user_id', user.id);
+      toast.success(t('leftEvent', language));
+    }
+  };
+
   const handleCreate = async () => {
     if (!newTitle.trim() || !newDate || !newTime || !user) return;
     const { data, error } = await supabase.from('events').insert({
@@ -211,21 +225,30 @@ export default function Events() {
           {filtered.map(event => (
             <div key={event.id} className="glass-panel p-4 card-hover space-y-3">
               <div className="flex items-start justify-between">
-                <div>
+                <div className="flex-1 min-w-0">
                   <h3 className="font-semibold amber-glow">{event.title}</h3>
                   <p className="text-sm text-muted-foreground mt-1">{event.description}</p>
                 </div>
-                <div className="flex flex-col items-end gap-1">
-                  <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs border border-primary/20 whitespace-nowrap">
-                    {t(event.drink || 'beer', language)}
-                  </span>
-                  <span className={`px-2 py-0.5 rounded-full text-xs border ${
-                    event.status === 'confirmed' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
-                    event.status === 'cancelled' ? 'bg-destructive/10 text-destructive border-destructive/20' :
-                    'bg-primary/5 text-muted-foreground border-border'
-                  }`}>
-                    {t(event.status || 'pending', language)}
-                  </span>
+                <div className="flex items-start gap-2">
+                  <div className="flex flex-col items-end gap-1">
+                    <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs border border-primary/20 whitespace-nowrap">
+                      {t(event.drink || 'beer', language)}
+                    </span>
+                    <span className={`px-2 py-0.5 rounded-full text-xs border ${
+                      event.status === 'confirmed' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                      event.status === 'cancelled' ? 'bg-destructive/10 text-destructive border-destructive/20' :
+                      'bg-primary/5 text-muted-foreground border-border'
+                    }`}>
+                      {t(event.status || 'pending', language)}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => handleDeleteEvent(event.id)}
+                    className="p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                    title={event.creator_id === user?.id ? t('msgDeleted', language) : t('leave', language)}
+                  >
+                    <X size={16} />
+                  </button>
                 </div>
               </div>
               <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
