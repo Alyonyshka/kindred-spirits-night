@@ -164,6 +164,19 @@ export default function Profile() {
     toast.success(t('msgDeleted', language));
   };
 
+  const handleDeleteEvent = async (eventId: string) => {
+    if (!user) return;
+    const ev = myEvents.find((e: any) => e.id === eventId);
+    if (ev?.creator_id === user.id) {
+      await supabase.from('event_participants').delete().eq('event_id', eventId);
+      await supabase.from('events').delete().eq('id', eventId);
+    } else {
+      await supabase.from('event_participants').delete().eq('event_id', eventId).eq('user_id', user.id);
+    }
+    setMyEvents(prev => prev.filter((e: any) => e.id !== eventId));
+    toast.success(t('msgDeleted', language));
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'confirmed': return 'text-emerald-400';
@@ -331,10 +344,18 @@ export default function Profile() {
               ) : (
                 <div className="space-y-3">
                   {myEvents.map((ev: any) => (
-                    <div key={ev.id} className="glass-panel p-3 space-y-1">
-                      <h3 className="font-semibold text-sm amber-glow">{ev.title}</h3>
-                      <p className="text-xs text-muted-foreground">{ev.date} • {ev.time}</p>
-                      <p className="text-xs text-muted-foreground">{ev.location}</p>
+                    <div key={ev.id} className="glass-panel p-3 flex items-start gap-3">
+                      <div className="flex-1 space-y-1">
+                        <h3 className="font-semibold text-sm amber-glow">{ev.title}</h3>
+                        <p className="text-xs text-muted-foreground">{ev.date} • {ev.time}</p>
+                        <p className="text-xs text-muted-foreground">{ev.location}</p>
+                      </div>
+                      <button
+                        onClick={() => handleDeleteEvent(ev.id)}
+                        className="p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                      >
+                        <X size={16} />
+                      </button>
                     </div>
                   ))}
                 </div>
