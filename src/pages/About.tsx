@@ -19,7 +19,7 @@ export default function About() {
       {/* Subtitle */}
       <motion.div className="glass-panel-strong p-5 text-center" {...fadeIn(0.1)}>
         <p className="text-lg font-bold text-foreground leading-snug">
-          Приложение «Собутыльник»: Когда друзья хотят закутаться в плед, а ты хочешь в бар
+          Приложение «Собутыльник»: Когда друзья хотят в бар, а ты хочешь в плед
         </p>
       </motion.div>
 
