@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { User, Handshake, Ban, MessageCircle, Star, Check, X as XIcon } from 'lucide-react';
+import { User, Handshake, Ban, MessageCircle, Star, Check, X as XIcon, Trash2 } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
 import { t } from '@/lib/i18n';
 import { supabase } from '@/integrations/supabase/client';
@@ -134,6 +134,14 @@ export default function Messages() {
     setChatUser(profile);
   };
 
+  const handleDeleteChat = async (e: React.MouseEvent, otherUserId: string) => {
+    e.stopPropagation();
+    if (!user) return;
+    await supabase.from('messages').delete().or(`and(sender_id.eq.${user.id},receiver_id.eq.${otherUserId}),and(sender_id.eq.${otherUserId},receiver_id.eq.${user.id})`);
+    setChats(prev => prev.filter(c => c.id !== otherUserId));
+    toast.success(t('deleted', language));
+  };
+
   const handleAvatarClick = (e: React.MouseEvent, profile: Profile) => {
     e.stopPropagation();
     setExpandedUser(profile);
@@ -247,6 +255,13 @@ export default function Messages() {
                   {chat.unread}
                 </span>
               )}
+              <button
+                onClick={(e) => handleDeleteChat(e, chat.id)}
+                className="ml-1 p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                title={t('delete', language)}
+              >
+                <Trash2 size={16} />
+              </button>
             </div>
           ))
         )}
