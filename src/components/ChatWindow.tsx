@@ -495,6 +495,13 @@ export default function ChatWindow({ user: otherUser, onClose }: ChatWindowProps
           onForward={() => { handleForwardMsg(); setContextMenu(null); }}
         />
       )}
+      {/* Adventure Plan Modal */}
+      <AdventurePlanModal
+        otherUserId={otherUser.user_id}
+        otherUserName={otherUser.name}
+        isOpen={showAdventure}
+        onClose={() => setShowAdventure(false)}
+      />
     </motion.div>
   );
 }
