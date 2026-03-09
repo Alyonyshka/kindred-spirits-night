@@ -32,6 +32,7 @@ const EMOJI_LIST = ['😀','😂','🤣','😍','🥳','🍻','🍷','🍺','�
 export default function ChatWindow({ user: otherUser, onClose }: ChatWindowProps) {
   const { language, user: currentUser } = useApp();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [showAdventure, setShowAdventure] = useState(false);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [showEmoji, setShowEmoji] = useState(false);
