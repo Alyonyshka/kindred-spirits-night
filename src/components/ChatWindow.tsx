@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { X, Send, User, Image, Video, Mic, MicOff, Smile, Paperclip, Reply, Edit2 } from 'lucide-react';
+import { X, Send, User, Image, Video, Mic, MicOff, Smile, Paperclip, Reply, Edit2, Sparkles } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
 import { t } from '@/lib/i18n';
 import { supabase } from '@/integrations/supabase/client';
@@ -7,6 +7,7 @@ import type { Profile } from '@/hooks/useAuth';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import MessageContextMenu from './MessageContextMenu';
+import AdventurePlanModal from './AdventurePlanModal';
 
 interface ChatWindowProps {
   user: Profile;
@@ -31,6 +32,7 @@ const EMOJI_LIST = ['😀','😂','🤣','😍','🥳','🍻','🍷','🍺','�
 export default function ChatWindow({ user: otherUser, onClose }: ChatWindowProps) {
   const { language, user: currentUser } = useApp();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [showAdventure, setShowAdventure] = useState(false);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [showEmoji, setShowEmoji] = useState(false);
@@ -291,6 +293,13 @@ export default function ChatWindow({ user: otherUser, onClose }: ChatWindowProps
               {t(otherUser.online ? 'online' : 'offline', language)}
             </span>
           </div>
+          <button
+            onClick={() => setShowAdventure(true)}
+            className="p-2 rounded-lg hover:bg-accent transition-colors group"
+            title={t('adventureGenerator', language)}
+          >
+            <Sparkles size={20} className="text-primary group-hover:animate-pulse" style={{ filter: 'drop-shadow(0 0 4px hsl(var(--primary) / 0.5))' }} />
+          </button>
           <button onClick={onClose} className="p-2 rounded-lg hover:bg-accent transition-colors">
             <X size={20} />
           </button>
@@ -486,6 +495,13 @@ export default function ChatWindow({ user: otherUser, onClose }: ChatWindowProps
           onForward={() => { handleForwardMsg(); setContextMenu(null); }}
         />
       )}
+      {/* Adventure Plan Modal */}
+      <AdventurePlanModal
+        otherUserId={otherUser.user_id}
+        otherUserName={otherUser.name}
+        isOpen={showAdventure}
+        onClose={() => setShowAdventure(false)}
+      />
     </motion.div>
   );
 }

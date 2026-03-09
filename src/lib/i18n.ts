@@ -183,6 +183,14 @@ export const translations: Record<string, Record<Language, string>> = {
   decline: { ru: 'Отклонить', en: 'Decline', ua: 'Відхилити' },
   noResults: { ru: 'Ничего не найдено', en: 'Nothing found', ua: 'Нічого не знайдено' },
   loading: { ru: 'Загрузка...', en: 'Loading...', ua: 'Завантаження...' },
+  deleted: { ru: 'Удалено', en: 'Deleted', ua: 'Видалено' },
+
+  // Adventure generator
+  missionNight: { ru: 'МИССИЯ: НОЧЬ', en: 'MISSION: NIGHT', ua: 'МІСІЯ: НІЧ' },
+  adventureGenerator: { ru: 'Генератор приключений', en: 'Adventure Generator', ua: 'Генератор пригод' },
+  generatePlan: { ru: 'План на вечер', en: 'Evening Plan', ua: 'План на вечір' },
+  generatingPlan: { ru: 'Генерируем безумный план...', en: 'Generating a crazy plan...', ua: 'Генеруємо шалений план...' },
+  tapToSkip: { ru: 'Нажмите, чтобы пропустить анимацию', en: 'Tap to skip animation', ua: 'Натисніть, щоб пропустити анімацію' },
 };
 
 export const cityKeys = [

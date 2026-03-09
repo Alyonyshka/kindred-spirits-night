@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      adventure_plans: {
+        Row: {
+          created_at: string
+          id: string
+          plan_text: string
+          user1_id: string
+          user2_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          plan_text?: string
+          user1_id: string
+          user2_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          plan_text?: string
+          user1_id?: string
+          user2_id?: string
+        }
+        Relationships: []
+      }
       blocked_users: {
         Row: {
           blocked_id: string
