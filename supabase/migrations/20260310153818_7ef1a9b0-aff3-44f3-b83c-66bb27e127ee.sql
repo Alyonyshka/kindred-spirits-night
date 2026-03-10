@@ -1,0 +1,1 @@
+CREATE POLICY "Users can delete their plans" ON public.adventure_plans FOR DELETE TO authenticated USING ((user1_id = auth.uid()) OR (user2_id = auth.uid()));
