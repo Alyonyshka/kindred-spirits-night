@@ -103,6 +103,12 @@ export default function Profile() {
   const toggleInterest = (i: string) => setInterests(prev => prev.includes(i) ? prev.filter(x => x !== i) : [...prev, i]);
 
   const handleSave = async () => {
+    // Check if adventure-relevant fields changed
+    const adventureFieldsChanged =
+      JSON.stringify(drinks) !== JSON.stringify(profile?.drinks || []) ||
+      level !== (profile?.alcohol_level || '') ||
+      JSON.stringify(interests) !== JSON.stringify(profile?.interests || []);
+
     const { error } = await updateProfile({
       name,
       age: Number(age) || 18,
@@ -118,6 +124,14 @@ export default function Profile() {
     } else {
       setCity(profileCity);
       toast.success(t('profileSaved', language));
+
+      // Regenerate adventure plans if relevant fields changed
+      if (adventureFieldsChanged && user) {
+        await supabase
+          .from('adventure_plans')
+          .delete()
+          .or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`);
+      }
     }
   };
 
