@@ -343,6 +343,12 @@ export default function ChatWindow({ user: otherUser, onClose }: ChatWindowProps
                   {msg.type === 'video' && msg.mediaUrl && (
                     <video src={msg.mediaUrl} controls className="rounded-xl max-w-full mb-1" />
                   )}
+                  {msg.type === 'gif' && msg.mediaUrl && (
+                    <img src={msg.mediaUrl} alt="gif" className="rounded-xl max-w-full mb-1" />
+                  )}
+                  {msg.type === 'sticker' && (
+                    <span className="text-4xl block mb-1">{msg.text}</span>
+                  )}
                   {msg.type === 'voice' && (
                     <div className="flex items-center gap-2 mb-1">
                       <Mic size={14} />
@@ -355,7 +361,7 @@ export default function ChatWindow({ user: otherUser, onClose }: ChatWindowProps
                       )}
                     </div>
                   )}
-                  <p>{msg.text}</p>
+                  {msg.type !== 'sticker' && <p>{msg.text}</p>}
                   <span className={`text-[10px] mt-1 block ${msg.fromMe ? 'text-primary-foreground/60' : 'text-muted-foreground'}`}>
                     {msg.time} {msg.edited && `· ${t('msgEdited', language)}`} {msg.fromMe && (msg.read ? '✓✓' : '✓')}
                   </span>
