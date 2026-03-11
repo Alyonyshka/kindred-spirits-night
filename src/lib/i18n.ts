@@ -148,6 +148,136 @@ export const translations: Record<string, Record<Language, string>> = {
 
   // About
   aboutApp: { ru: 'О приложении', en: 'About', ua: 'Про додаток' },
+  aboutSubtitle: {
+    ru: 'Приложение «Собутыльник»: Когда друзья хотят завернуться в плед, а ты хочешь в бар',
+    en: 'The «Drink Mate» App: When your friends want to wrap up in a blanket, but you want to hit the bar',
+    ua: 'Додаток «Співпляшник»: Коли друзі хочуть загорнутися в плед, а ти хочеш у бар',
+  },
+  aboutIntro: {
+    ru: 'Давайте будем честными: у каждого в жизни наступает момент, когда «здоровье уже не то», дел невпроворот, а настроение — просто попить чаю и посмотреть в стену.',
+    en: "Let's be honest: there comes a time in everyone's life when \"health isn't what it used to be,\" there's too much to do, and the mood is just to drink tea and stare at the wall.",
+    ua: 'Давайте будемо чесними: у кожного в житті настає момент, коли «здоров\'я вже не те», справ купа, а настрій — просто попити чаю і дивитися в стіну.',
+  },
+  aboutStory: {
+    ru: 'Вы горите желанием «бахнуть по коктейльчику», обсуждать мироздание до трех утра и праздновать пятницу так, будто она последняя в истории. А ваши друзья уже не в той форме… вы смотрите на них с нежностью, легкой грустью и понимаете: они не вывезут. Их время героических заплывов в море просекко временно (или навсегда) встало на паузу.',
+    en: 'You\'re dying to "knock back a cocktail," discuss the universe until 3 AM, and celebrate Friday like it\'s the last one in history. But your friends are no longer in shape... you look at them with tenderness, slight sadness, and realize: they won\'t make it. Their era of heroic swims in a sea of prosecco has temporarily (or permanently) been put on pause.',
+    ua: 'Ви горите бажанням «бахнути по коктейльчику», обговорювати всесвіт до третьої ночі й святкувати п\'ятницю так, ніби вона остання в історії. А ваші друзі вже не в тій формі… ви дивитеся на них з ніжністю, легким сумом і розумієте: вони не вивезуть. Їхній час героїчних запливів у морі просекко тимчасово (чи назавжди) став на паузу.',
+  },
+  aboutEureka: {
+    ru: 'Именно в такой вечер, когда я в очередной раз «отшивала» любимых друзей, меня осенило: «Зачем им ждать меня, если мир полон людей, которые прямо сейчас скучают с полным бокалом?»',
+    en: 'It was on one such evening, when I was once again "brushing off" my beloved friends, that it hit me: "Why should they wait for me when the world is full of people who are bored right now with a full glass?"',
+    ua: 'Саме в такий вечір, коли я вкотре «відшивала» улюблених друзів, мене осінило: «Навіщо їм чекати на мене, якщо світ повний людей, які саме зараз нудьгують з повним келихом?»',
+  },
+  aboutManifesto: {
+    ru: 'Так родился «Собутыльник» — приложение для тех, кто не хочет пить в одиночестве, и ждать тех, кто, возможно уже никогда не вернётся в алкоголизм вместе с тобой или ещё хуже того - самому бросить пить и встать на путь истины, а ищет новых друзей-алкашей и продолжить этот непростой путь, о котором, возможно напишут книгу, сочинят анекдот или просто возведут в честь тебя памятник!',
+    en: 'Thus "Drink Mate" was born — an app for those who don\'t want to drink alone, waiting for those who may never return to alcoholism with you, or worse — quit drinking yourself and walk the path of righteousness. Instead, you\'re looking for new drinking buddies to continue this difficult journey, about which someone might write a book, compose a joke, or simply erect a monument in your honor!',
+    ua: 'Так народився «Співпляшник» — додаток для тих, хто не хоче пити на самоті, і чекати тих, хто, можливо, вже ніколи не повернеться в алкоголізм разом з тобою, або ще гірше — самому кинути пити й стати на шлях істини, а шукає нових друзів-алкашів і продовжити цей непростий шлях, про який, можливо, напишуть книгу, складуть анекдот або просто зведуть на честь тебе пам\'ятник!',
+  },
+  aboutWhyTitle: {
+    ru: 'Зачем это нужно?',
+    en: 'Why is this needed?',
+    ua: 'Навіщо це потрібно?',
+  },
+  aboutWhyText: {
+    ru: 'Мир огромен, но найти человека, с которым «совпадут пазлы» за барной стойкой, бывает квестом. Мы создали пространство, где одиночество превращается в компанию, а вечер — в историю.',
+    en: 'The world is huge, but finding someone whose "puzzle pieces match" at a bar can be a quest. We created a space where loneliness turns into company, and an evening into a story.',
+    ua: 'Світ величезний, але знайти людину, з якою «пазли складуться» за барною стійкою, буває квестом. Ми створили простір, де самотність перетворюється на компанію, а вечір — на історію.',
+  },
+  aboutFindTitle: {
+    ru: 'В «Собутыльнике» вы найдете:',
+    en: 'In "Drink Mate" you\'ll find:',
+    ua: 'У «Співпляшнику» ви знайдете:',
+  },
+  aboutFind1Title: { ru: 'Своих людей:', en: 'Your people:', ua: 'Своїх людей:' },
+  aboutFind1Text: {
+    ru: 'Тех, кто разделяет ваше мировоззрение, жизненные принципы и чувство юмора.',
+    en: 'Those who share your worldview, life principles, and sense of humor.',
+    ua: 'Тих, хто поділяє ваш світогляд, життєві принципи та почуття гумору.',
+  },
+  aboutFind2Title: { ru: 'Родственные души:', en: 'Kindred spirits:', ua: 'Споріднені душі:' },
+  aboutFind2Text: {
+    ru: 'Кому можно излить душу, рассказать о планах, поныть о грустном или вместе поорать от радости.',
+    en: 'Someone you can pour your heart out to, share plans, whine about the sad stuff, or scream with joy together.',
+    ua: 'Кому можна вилити душу, розповісти про плани, поскаржитися на сумне або разом покричати від радості.',
+  },
+  aboutFind3Title: { ru: 'Экспертов и новичков:', en: 'Experts and beginners:', ua: 'Експертів і новачків:' },
+  aboutFind3Text: {
+    ru: 'Расширяйте кругозор! Узнавайте всё о крафтовом пиве, тонкостях выдержки виски или искусстве смешивания идеального «Негрони».',
+    en: 'Broaden your horizons! Learn everything about craft beer, whiskey aging nuances, or the art of mixing the perfect Negroni.',
+    ua: 'Розширюйте кругозір! Дізнавайтеся все про крафтове пиво, тонкощі витримки віскі або мистецтво змішування ідеального «Негроні».',
+  },
+  aboutFind4Title: { ru: 'Коктейль эмоций:', en: 'Cocktail of emotions:', ua: 'Коктейль емоцій:' },
+  aboutFind4Text: {
+    ru: 'Это не просто про алкоголь. Это про перезагрузку, новые знания и тот самый «вайб», когда тебя понимают с первого тоста.',
+    en: "It's not just about alcohol. It's about recharging, new knowledge, and that \"vibe\" when you're understood from the first toast.",
+    ua: 'Це не просто про алкоголь. Це про перезавантаження, нові знання і той самий «вайб», коли тебе розуміють з першого тосту.',
+  },
+  aboutMoreTitle: {
+    ru: 'Больше, чем просто «посиделки»',
+    en: 'More than just "hangouts"',
+    ua: 'Більше, ніж просто «посиденьки»',
+  },
+  aboutMoreText: {
+    ru: 'Я искренне верю: человеку нужен человек. Нам важно быть в обществе, чувствовать себя нужными и услышанными. «Собутыльник» — это про:',
+    en: "I sincerely believe: people need people. It's important to be in company, to feel needed and heard. \"Drink Mate\" is about:",
+    ua: 'Я щиро вірю: людині потрібна людина. Нам важливо бути в товаристві, почуватися потрібними й почутими. «Співпляшник» — це про:',
+  },
+  aboutFriendship: { ru: 'Дружбу:', en: 'Friendship:', ua: 'Дружбу:' },
+  aboutFriendshipText: {
+    ru: 'Которая начинается с фразы «О, ты тоже любишь сухой мартини?».',
+    en: 'That starts with "Oh, you also love dry martini?".',
+    ua: 'Яка починається з фрази «О, ти теж любиш сухий мартіні?».',
+  },
+  aboutLove: { ru: 'Любовь:', en: 'Love:', ua: 'Кохання:' },
+  aboutLoveText: {
+    ru: 'Кто знает, может, ваша судьба сидит в соседнем квартале и тоже ищет компанию на вечер?',
+    en: 'Who knows, maybe your destiny is sitting in the next block, also looking for company tonight?',
+    ua: 'Хто знає, може ваша доля сидить у сусідньому кварталі і теж шукає компанію на вечір?',
+  },
+  aboutReboot: { ru: 'Перезагрузку:', en: 'Recharging:', ua: 'Перезавантаження:' },
+  aboutRebootText: {
+    ru: 'Чтобы выплеснуть стресс и вернуться в жизнь обновленным.',
+    en: 'To release stress and return to life refreshed.',
+    ua: 'Щоб виплеснути стрес і повернутися в життя оновленим.',
+  },
+  aboutManifestoFinal: {
+    ru: 'Мой манифест: Я не могу пить с вами так часто, как раньше, но я создала целую вселенную, чтобы вы никогда не чувствовали себя одинокими. Живите ярко, пейте ответственно и находите своих!',
+    en: "My manifesto: I can't drink with you as often as before, but I've created an entire universe so you never feel alone. Live brightly, drink responsibly, and find your people!",
+    ua: 'Мій маніфест: Я не можу пити з вами так часто, як раніше, але я створила цілий всесвіт, щоб ви ніколи не почувалися самотніми. Живіть яскраво, пийте відповідально й знаходьте своїх!',
+  },
+  aboutInsideTitle: {
+    ru: 'Что внутри?',
+    en: "What's inside?",
+    ua: 'Що всередині?',
+  },
+  aboutSearch: { ru: 'Поиск по интересам:', en: 'Search by interests:', ua: 'Пошук за інтересами:' },
+  aboutSearchText: {
+    ru: 'От ядерной физики до разведения кактусов.',
+    en: 'From nuclear physics to cactus breeding.',
+    ua: 'Від ядерної фізики до розведення кактусів.',
+  },
+  aboutTaste: { ru: 'Вкусовые эксперименты:', en: 'Taste experiments:', ua: 'Смакові експерименти:' },
+  aboutTasteText: {
+    ru: 'Гайд по напиткам и коктейльная карта твоих возможностей.',
+    en: 'A drink guide and a cocktail menu of your possibilities.',
+    ua: 'Гайд по напоях і коктейльна карта твоїх можливостей.',
+  },
+  aboutSafety: { ru: 'Безопасность и коннект:', en: 'Safety and connection:', ua: 'Безпека та конект:' },
+  aboutSafetyText: {
+    ru: 'Выбирай компанию, которая тебе по душе, и назначай встречу в пару кликов.',
+    en: 'Choose company you like and set up a meeting in a couple of clicks.',
+    ua: 'Обирай компанію, яка тобі до душі, і призначай зустріч у пару кліків.',
+  },
+  aboutCTA: {
+    ru: 'Хватит ждать особого случая или когда у друзей освободится вечер. Скачивай «Собутыльник» — твой идеальный вечер уже заждался тебя в баре!',
+    en: 'Stop waiting for a special occasion or for your friends to free up their evening. Download "Drink Mate" — your perfect night out is already waiting for you at the bar!',
+    ua: 'Досить чекати особливого випадку або коли у друзів звільниться вечір. Завантажуй «Співпляшник» — твій ідеальний вечір вже заждався тебе в барі!',
+  },
+
+  // Chat extras
+  stickers: { ru: 'Стикеры', en: 'Stickers', ua: 'Стікери' },
+  gifs: { ru: 'GIF', en: 'GIF', ua: 'GIF' },
+  searchGif: { ru: 'Искать GIF...', en: 'Search GIF...', ua: 'Шукати GIF...' },
 
   // Friend of the week
   friendOfWeek: { ru: 'Друг недели', en: 'Friend of the week', ua: 'Друг тижня' },

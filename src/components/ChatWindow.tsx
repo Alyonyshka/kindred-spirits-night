@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import MessageContextMenu from './MessageContextMenu';
 import AdventurePlanModal from './AdventurePlanModal';
+import ChatEmojiStickers from './ChatEmojiStickers';
 
 interface ChatWindowProps {
   user: Profile;
@@ -19,7 +20,7 @@ interface ChatMessage {
   text: string;
   fromMe: boolean;
   time: string;
-  type?: 'text' | 'photo' | 'video' | 'voice';
+  type?: 'text' | 'photo' | 'video' | 'voice' | 'sticker' | 'gif';
   mediaUrl?: string;
   read?: boolean;
   edited?: boolean;
@@ -28,6 +29,7 @@ interface ChatMessage {
 }
 
 const EMOJI_LIST = ['😀','😂','🤣','😍','🥳','🍻','🍷','🍺','🥂','🍸','🔥','❤️','👍','🎉','🤝','😎','🌙','✨','💪','🙌'];
+type ChatMediaTab = 'none' | 'emoji' | 'attach';
 
 export default function ChatWindow({ user: otherUser, onClose }: ChatWindowProps) {
   const { language, user: currentUser } = useApp();
@@ -36,7 +38,7 @@ export default function ChatWindow({ user: otherUser, onClose }: ChatWindowProps
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [showEmoji, setShowEmoji] = useState(false);
-  const [showAttach, setShowAttach] = useState(false);
+  const [mediaTab, setMediaTab] = useState<ChatMediaTab>('none');
   const [isRecording, setIsRecording] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ msg: ChatMessage; x: number; y: number } | null>(null);
   const [editingMsg, setEditingMsg] = useState<ChatMessage | null>(null);
@@ -135,7 +137,7 @@ export default function ChatWindow({ user: otherUser, onClose }: ChatWindowProps
 
     setInput('');
     setShowEmoji(false);
-    setReplyTo(null);
+    setMediaTab('none');
   };
 
   const handleMsgContextMenu = (e: React.MouseEvent | React.TouchEvent, msg: ChatMessage) => {
@@ -179,7 +181,7 @@ export default function ChatWindow({ user: otherUser, onClose }: ChatWindowProps
       toast.success(t('photoSent', language));
     };
     reader.readAsDataURL(file);
-    setShowAttach(false);
+    setMediaTab('none');
   };
 
   const handleVideo = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -197,7 +199,7 @@ export default function ChatWindow({ user: otherUser, onClose }: ChatWindowProps
       toast.success(t('videoSent', language));
     };
     reader.readAsDataURL(file);
-    setShowAttach(false);
+    setMediaTab('none');
   };
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -268,6 +270,29 @@ export default function ChatWindow({ user: otherUser, onClose }: ChatWindowProps
   };
 
   const addEmoji = (emoji: string) => setInput(prev => prev + emoji);
+
+  const sendSticker = async (sticker: string) => {
+    if (!currentUser) return;
+    await supabase.from('messages').insert({
+      sender_id: currentUser.id,
+      receiver_id: otherUser.user_id,
+      content: sticker,
+      type: 'sticker',
+    });
+    setShowEmoji(false);
+  };
+
+  const sendGif = async (gifUrl: string) => {
+    if (!currentUser) return;
+    await supabase.from('messages').insert({
+      sender_id: currentUser.id,
+      receiver_id: otherUser.user_id,
+      content: 'GIF',
+      type: 'gif',
+      media_url: gifUrl,
+    });
+    setShowEmoji(false);
+  };
 
   return (
     <motion.div
@@ -341,6 +366,12 @@ export default function ChatWindow({ user: otherUser, onClose }: ChatWindowProps
                   {msg.type === 'video' && msg.mediaUrl && (
                     <video src={msg.mediaUrl} controls className="rounded-xl max-w-full mb-1" />
                   )}
+                  {msg.type === 'gif' && msg.mediaUrl && (
+                    <img src={msg.mediaUrl} alt="gif" className="rounded-xl max-w-full mb-1" />
+                  )}
+                  {msg.type === 'sticker' && (
+                    <span className="text-4xl block mb-1">{msg.text}</span>
+                  )}
                   {msg.type === 'voice' && (
                     <div className="flex items-center gap-2 mb-1">
                       <Mic size={14} />
@@ -353,7 +384,7 @@ export default function ChatWindow({ user: otherUser, onClose }: ChatWindowProps
                       )}
                     </div>
                   )}
-                  <p>{msg.text}</p>
+                  {msg.type !== 'sticker' && <p>{msg.text}</p>}
                   <span className={`text-[10px] mt-1 block ${msg.fromMe ? 'text-primary-foreground/60' : 'text-muted-foreground'}`}>
                     {msg.time} {msg.edited && `· ${t('msgEdited', language)}`} {msg.fromMe && (msg.read ? '✓✓' : '✓')}
                   </span>
@@ -363,27 +394,20 @@ export default function ChatWindow({ user: otherUser, onClose }: ChatWindowProps
           )}
         </div>
 
-        {/* Emoji picker */}
+        {/* Emoji/Stickers/GIF picker */}
         <AnimatePresence>
           {showEmoji && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              className="glass-panel-strong border-t border-border/50 overflow-hidden"
-            >
-              <div className="p-3 flex flex-wrap gap-2">
-                {EMOJI_LIST.map(e => (
-                  <button key={e} onClick={() => addEmoji(e)} className="text-xl hover:scale-125 transition-transform">{e}</button>
-                ))}
-              </div>
-            </motion.div>
+            <ChatEmojiStickers
+              onSelectEmoji={addEmoji}
+              onSendSticker={sendSticker}
+              onSendGif={sendGif}
+            />
           )}
         </AnimatePresence>
 
         {/* Attachment menu */}
         <AnimatePresence>
-          {showAttach && (
+          {mediaTab === 'attach' && (
             <motion.div
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: 'auto', opacity: 1 }}
@@ -395,13 +419,13 @@ export default function ChatWindow({ user: otherUser, onClose }: ChatWindowProps
                   <div className="w-10 h-10 rounded-full border border-border flex items-center justify-center hover:border-primary/30">
                     <Image size={18} />
                   </div>
-                  <span className="text-[10px]">Фото</span>
+                  <span className="text-[10px]">{t('uploadPhoto', language)}</span>
                 </button>
                 <button onClick={() => videoRef.current?.click()} className="flex flex-col items-center gap-1 text-muted-foreground hover:text-primary transition-colors">
                   <div className="w-10 h-10 rounded-full border border-border flex items-center justify-center hover:border-primary/30">
                     <Video size={18} />
                   </div>
-                  <span className="text-[10px]">Видео</span>
+                  <span className="text-[10px]">{t('videoSent', language).split(' ')[0]}</span>
                 </button>
               </div>
             </motion.div>
@@ -441,13 +465,13 @@ export default function ChatWindow({ user: otherUser, onClose }: ChatWindowProps
         <div className="glass-panel-strong p-3 border-t border-border/50">
           <div className="flex items-center gap-1.5">
             <button
-              onClick={() => { setShowAttach(!showAttach); setShowEmoji(false); }}
+              onClick={() => { setMediaTab(mediaTab === 'attach' ? 'none' : 'attach'); setShowEmoji(false); }}
               className="p-2 rounded-lg text-muted-foreground hover:text-primary transition-colors"
             >
               <Paperclip size={18} />
             </button>
             <button
-              onClick={() => { setShowEmoji(!showEmoji); setShowAttach(false); }}
+              onClick={() => { setShowEmoji(!showEmoji); setMediaTab('none'); }}
               className="p-2 rounded-lg text-muted-foreground hover:text-primary transition-colors"
             >
               <Smile size={18} />

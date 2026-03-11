@@ -32,6 +32,7 @@ export default function Profile() {
   const [avatar, setAvatar] = useState<string>(profile?.avatar_url || '');
   const [profileCity, setProfileCity] = useState(profile?.city || city);
   const [showDrinks, setShowDrinks] = useState(false);
+  const [showLevel, setShowLevel] = useState(false);
   const [showInterests, setShowInterests] = useState(false);
   const [showCities, setShowCities] = useState(false);
 
@@ -297,12 +298,19 @@ export default function Profile() {
         </div>
 
         {/* Alcohol level */}
-        <div className="flex gap-2 overflow-x-auto scrollbar-hide">
-          {alcoholLevelKeys.map(l => (
-            <button key={l} onClick={() => setLevel(l === level ? '' : l)} className={`px-3 py-2 rounded-xl text-xs font-medium border whitespace-nowrap transition-all ${level === l ? 'bg-primary/15 text-primary amber-border-glow' : 'border-border text-muted-foreground hover:text-foreground'}`}>
-              {t(l, language)}
-            </button>
-          ))}
+        <div>
+          <button onClick={() => setShowLevel(!showLevel)} className={`w-full px-4 py-2.5 rounded-2xl text-sm text-left border transition-all ${level ? 'amber-border-glow text-primary' : 'border-border text-muted-foreground'} bg-secondary/30`}>
+            {t('drinkAmount', language)}{level ? `: ${t(level, language)}` : ''}
+          </button>
+          {showLevel && (
+            <div className="mt-2 glass-panel-strong p-3 grid grid-cols-2 gap-1.5">
+              {alcoholLevelKeys.map(l => (
+                <button key={l} onClick={() => { setLevel(l === level ? '' : l); setShowLevel(false); }} className={`px-3 py-3 rounded-xl text-xs font-medium border whitespace-nowrap transition-all text-center ${level === l ? 'bg-primary/15 text-primary amber-border-glow' : 'border-border text-muted-foreground hover:text-foreground'}`}>
+                  {t(l, language)}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Interests selector */}
