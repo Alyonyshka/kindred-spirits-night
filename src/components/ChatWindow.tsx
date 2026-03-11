@@ -38,7 +38,7 @@ export default function ChatWindow({ user: otherUser, onClose }: ChatWindowProps
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [showEmoji, setShowEmoji] = useState(false);
-  const [showAttach, setShowAttach] = useState(false);
+  const [mediaTab, setMediaTab] = useState<ChatMediaTab>('none');
   const [isRecording, setIsRecording] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ msg: ChatMessage; x: number; y: number } | null>(null);
   const [editingMsg, setEditingMsg] = useState<ChatMessage | null>(null);
