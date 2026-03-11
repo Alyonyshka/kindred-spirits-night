@@ -199,7 +199,7 @@ export default function ChatWindow({ user: otherUser, onClose }: ChatWindowProps
       toast.success(t('videoSent', language));
     };
     reader.readAsDataURL(file);
-    setShowAttach(false);
+    setMediaTab('none');
   };
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
