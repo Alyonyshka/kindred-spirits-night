@@ -137,7 +137,7 @@ export default function ChatWindow({ user: otherUser, onClose }: ChatWindowProps
 
     setInput('');
     setShowEmoji(false);
-    setReplyTo(null);
+    setMediaTab('none');
   };
 
   const handleMsgContextMenu = (e: React.MouseEvent | React.TouchEvent, msg: ChatMessage) => {
