@@ -181,7 +181,7 @@ export default function ChatWindow({ user: otherUser, onClose }: ChatWindowProps
       toast.success(t('photoSent', language));
     };
     reader.readAsDataURL(file);
-    setShowAttach(false);
+    setMediaTab('none');
   };
 
   const handleVideo = async (e: React.ChangeEvent<HTMLInputElement>) => {
