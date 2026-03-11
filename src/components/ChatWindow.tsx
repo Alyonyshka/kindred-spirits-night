@@ -394,27 +394,20 @@ export default function ChatWindow({ user: otherUser, onClose }: ChatWindowProps
           )}
         </div>
 
-        {/* Emoji picker */}
+        {/* Emoji/Stickers/GIF picker */}
         <AnimatePresence>
           {showEmoji && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              className="glass-panel-strong border-t border-border/50 overflow-hidden"
-            >
-              <div className="p-3 flex flex-wrap gap-2">
-                {EMOJI_LIST.map(e => (
-                  <button key={e} onClick={() => addEmoji(e)} className="text-xl hover:scale-125 transition-transform">{e}</button>
-                ))}
-              </div>
-            </motion.div>
+            <ChatEmojiStickers
+              onSelectEmoji={addEmoji}
+              onSendSticker={sendSticker}
+              onSendGif={sendGif}
+            />
           )}
         </AnimatePresence>
 
         {/* Attachment menu */}
         <AnimatePresence>
-          {showAttach && (
+          {mediaTab === 'attach' && (
             <motion.div
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: 'auto', opacity: 1 }}
@@ -426,13 +419,13 @@ export default function ChatWindow({ user: otherUser, onClose }: ChatWindowProps
                   <div className="w-10 h-10 rounded-full border border-border flex items-center justify-center hover:border-primary/30">
                     <Image size={18} />
                   </div>
-                  <span className="text-[10px]">Фото</span>
+                  <span className="text-[10px]">{t('uploadPhoto', language)}</span>
                 </button>
                 <button onClick={() => videoRef.current?.click()} className="flex flex-col items-center gap-1 text-muted-foreground hover:text-primary transition-colors">
                   <div className="w-10 h-10 rounded-full border border-border flex items-center justify-center hover:border-primary/30">
                     <Video size={18} />
                   </div>
-                  <span className="text-[10px]">Видео</span>
+                  <span className="text-[10px]">{t('videoSent', language).split(' ')[0]}</span>
                 </button>
               </div>
             </motion.div>
@@ -472,13 +465,13 @@ export default function ChatWindow({ user: otherUser, onClose }: ChatWindowProps
         <div className="glass-panel-strong p-3 border-t border-border/50">
           <div className="flex items-center gap-1.5">
             <button
-              onClick={() => { setShowAttach(!showAttach); setShowEmoji(false); }}
+              onClick={() => { setMediaTab(mediaTab === 'attach' ? 'none' : 'attach'); setShowEmoji(false); }}
               className="p-2 rounded-lg text-muted-foreground hover:text-primary transition-colors"
             >
               <Paperclip size={18} />
             </button>
             <button
-              onClick={() => { setShowEmoji(!showEmoji); setShowAttach(false); }}
+              onClick={() => { setShowEmoji(!showEmoji); setMediaTab('none'); }}
               className="p-2 rounded-lg text-muted-foreground hover:text-primary transition-colors"
             >
               <Smile size={18} />
