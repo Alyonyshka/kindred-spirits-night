@@ -29,6 +29,7 @@ interface ChatMessage {
 }
 
 const EMOJI_LIST = ['😀','😂','🤣','😍','🥳','🍻','🍷','🍺','🥂','🍸','🔥','❤️','👍','🎉','🤝','😎','🌙','✨','💪','🙌'];
+type ChatMediaTab = 'none' | 'emoji' | 'attach';
 
 export default function ChatWindow({ user: otherUser, onClose }: ChatWindowProps) {
   const { language, user: currentUser } = useApp();
