@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import MessageContextMenu from './MessageContextMenu';
 import AdventurePlanModal from './AdventurePlanModal';
+import ChatEmojiStickers from './ChatEmojiStickers';
 
 interface ChatWindowProps {
   user: Profile;
