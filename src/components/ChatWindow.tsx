@@ -271,6 +271,29 @@ export default function ChatWindow({ user: otherUser, onClose }: ChatWindowProps
 
   const addEmoji = (emoji: string) => setInput(prev => prev + emoji);
 
+  const sendSticker = async (sticker: string) => {
+    if (!currentUser) return;
+    await supabase.from('messages').insert({
+      sender_id: currentUser.id,
+      receiver_id: otherUser.user_id,
+      content: sticker,
+      type: 'sticker',
+    });
+    setShowEmoji(false);
+  };
+
+  const sendGif = async (gifUrl: string) => {
+    if (!currentUser) return;
+    await supabase.from('messages').insert({
+      sender_id: currentUser.id,
+      receiver_id: otherUser.user_id,
+      content: 'GIF',
+      type: 'gif',
+      media_url: gifUrl,
+    });
+    setShowEmoji(false);
+  };
+
   return (
     <motion.div
       className="fixed inset-0 z-[200] flex flex-col"
