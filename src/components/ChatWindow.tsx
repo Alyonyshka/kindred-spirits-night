@@ -20,7 +20,7 @@ interface ChatMessage {
   text: string;
   fromMe: boolean;
   time: string;
-  type?: 'text' | 'photo' | 'video' | 'voice';
+  type?: 'text' | 'photo' | 'video' | 'voice' | 'sticker' | 'gif';
   mediaUrl?: string;
   read?: boolean;
   edited?: boolean;
