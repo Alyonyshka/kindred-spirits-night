@@ -32,6 +32,7 @@ export default function Profile() {
   const [avatar, setAvatar] = useState<string>(profile?.avatar_url || '');
   const [profileCity, setProfileCity] = useState(profile?.city || city);
   const [showDrinks, setShowDrinks] = useState(false);
+  const [showLevel, setShowLevel] = useState(false);
   const [showInterests, setShowInterests] = useState(false);
   const [showCities, setShowCities] = useState(false);
 
