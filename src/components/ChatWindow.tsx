@@ -128,14 +128,21 @@ export default function ChatWindow({ user: otherUser, onClose }: ChatWindowProps
       return;
     }
 
-    await supabase.from('messages').insert({
+    const insertData: any = {
       sender_id: currentUser.id,
       receiver_id: otherUser.user_id,
       content: input.trim(),
       type: 'text',
-    });
+    };
+
+    if (replyTo?.dbId) {
+      insertData.reply_to_id = replyTo.dbId;
+    }
+
+    await supabase.from('messages').insert(insertData);
 
     setInput('');
+    setReplyTo(null);
     setShowEmoji(false);
     setMediaTab('none');
   };
