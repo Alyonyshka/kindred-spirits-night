@@ -567,7 +567,7 @@ export default function ChatWindow({ user: otherUser, onClose }: ChatWindowProps
           onEdit={() => { if (contextMenu.msg.fromMe) handleEditMsg(contextMenu.msg); setContextMenu(null); }}
           onReply={() => { handleReplyMsg(contextMenu.msg); setContextMenu(null); }}
           onCopy={() => { handleCopyMsg(contextMenu.msg); setContextMenu(null); }}
-          onForward={() => { handleForwardMsg(); setContextMenu(null); }}
+          onForward={() => { handleForwardMsg(contextMenu.msg); setContextMenu(null); }}
         />
       )}
       {/* Adventure Plan Modal */}
