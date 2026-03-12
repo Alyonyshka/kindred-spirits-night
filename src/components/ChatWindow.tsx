@@ -58,17 +58,27 @@ export default function ChatWindow({ user: otherUser, onClose }: ChatWindowProps
       .order('created_at', { ascending: true });
 
     if (data) {
-      const mapped: ChatMessage[] = data.map(m => ({
-        id: m.id,
-        dbId: m.id,
-        text: m.content || '',
-        fromMe: m.sender_id === currentUser.id,
-        time: new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        type: (m.type as ChatMessage['type']) || 'text',
-        mediaUrl: m.media_url || undefined,
-        read: m.read || false,
-        edited: m.edited || false,
-      }));
+      // Build a map for reply references
+      const msgMap = new Map(data.map(m => [m.id, m]));
+
+      const mapped: ChatMessage[] = data.map(m => {
+        const replyMsg = m.reply_to_id ? msgMap.get(m.reply_to_id) : null;
+        return {
+          id: m.id,
+          dbId: m.id,
+          text: m.content || '',
+          fromMe: m.sender_id === currentUser.id,
+          time: new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          type: (m.type as ChatMessage['type']) || 'text',
+          mediaUrl: m.media_url || undefined,
+          read: m.read || false,
+          edited: m.edited || false,
+          replyTo: replyMsg ? {
+            text: replyMsg.content || '',
+            name: replyMsg.sender_id === currentUser.id ? t('navProfile', language) : otherUser.name,
+          } : undefined,
+        };
+      });
       setMessages(mapped);
     }
     setLoading(false);
