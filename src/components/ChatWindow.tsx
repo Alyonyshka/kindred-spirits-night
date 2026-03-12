@@ -43,6 +43,8 @@ export default function ChatWindow({ user: otherUser, onClose }: ChatWindowProps
   const [contextMenu, setContextMenu] = useState<{ msg: ChatMessage; x: number; y: number } | null>(null);
   const [editingMsg, setEditingMsg] = useState<ChatMessage | null>(null);
   const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
+  const [forwardMsg, setForwardMsg] = useState<ChatMessage | null>(null);
+  const [forwardUsers, setForwardUsers] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
   const photoRef = useRef<HTMLInputElement>(null);
