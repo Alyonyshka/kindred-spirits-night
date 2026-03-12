@@ -570,6 +570,55 @@ export default function ChatWindow({ user: otherUser, onClose }: ChatWindowProps
           onForward={() => { handleForwardMsg(contextMenu.msg); setContextMenu(null); }}
         />
       )}
+
+      {/* Forward modal */}
+      <AnimatePresence>
+        {forwardMsg && (
+          <motion.div
+            className="fixed inset-0 z-[300] flex items-center justify-center p-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <div className="absolute inset-0 bg-background/70 backdrop-blur-sm" onClick={() => { setForwardMsg(null); setForwardUsers([]); }} />
+            <motion.div
+              className="relative glass-panel-strong p-5 w-full max-w-sm rounded-2xl border border-border"
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+            >
+              <h3 className="text-sm font-semibold mb-3">{t('msgForward', language)}</h3>
+              <div className="mb-3 px-3 py-2 rounded-xl bg-secondary/30 border border-border text-xs text-muted-foreground truncate">
+                {forwardMsg.text}
+              </div>
+              {forwardUsers.length === 0 ? (
+                <p className="text-center text-muted-foreground text-xs py-4">{t('noResults', language)}</p>
+              ) : (
+                <div className="space-y-1 max-h-60 overflow-y-auto">
+                  {forwardUsers.map(u => (
+                    <button
+                      key={u.user_id}
+                      onClick={() => doForward(u.user_id)}
+                      className="w-full flex items-center gap-3 p-2.5 rounded-xl hover:bg-accent transition-colors text-left"
+                    >
+                      <div className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center border border-border overflow-hidden">
+                        {u.avatar_url ? <img src={u.avatar_url} alt={u.name} className="w-full h-full object-cover rounded-full" /> : <User size={16} className="text-muted-foreground" />}
+                      </div>
+                      <span className="text-sm font-medium">{u.name}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+              <button
+                onClick={() => { setForwardMsg(null); setForwardUsers([]); }}
+                className="mt-3 w-full py-2 rounded-xl border border-border text-xs text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {t('cancel', language)}
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       {/* Adventure Plan Modal */}
       <AdventurePlanModal
         otherUserId={otherUser.user_id}
