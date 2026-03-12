@@ -43,6 +43,8 @@ export default function ChatWindow({ user: otherUser, onClose }: ChatWindowProps
   const [contextMenu, setContextMenu] = useState<{ msg: ChatMessage; x: number; y: number } | null>(null);
   const [editingMsg, setEditingMsg] = useState<ChatMessage | null>(null);
   const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
+  const [forwardMsg, setForwardMsg] = useState<ChatMessage | null>(null);
+  const [forwardUsers, setForwardUsers] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
   const photoRef = useRef<HTMLInputElement>(null);
@@ -58,17 +60,27 @@ export default function ChatWindow({ user: otherUser, onClose }: ChatWindowProps
       .order('created_at', { ascending: true });
 
     if (data) {
-      const mapped: ChatMessage[] = data.map(m => ({
-        id: m.id,
-        dbId: m.id,
-        text: m.content || '',
-        fromMe: m.sender_id === currentUser.id,
-        time: new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        type: (m.type as ChatMessage['type']) || 'text',
-        mediaUrl: m.media_url || undefined,
-        read: m.read || false,
-        edited: m.edited || false,
-      }));
+      // Build a map for reply references
+      const msgMap = new Map(data.map(m => [m.id, m]));
+
+      const mapped: ChatMessage[] = data.map(m => {
+        const replyMsg = m.reply_to_id ? msgMap.get(m.reply_to_id) : null;
+        return {
+          id: m.id,
+          dbId: m.id,
+          text: m.content || '',
+          fromMe: m.sender_id === currentUser.id,
+          time: new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          type: (m.type as ChatMessage['type']) || 'text',
+          mediaUrl: m.media_url || undefined,
+          read: m.read || false,
+          edited: m.edited || false,
+          replyTo: replyMsg ? {
+            text: replyMsg.content || '',
+            name: replyMsg.sender_id === currentUser.id ? t('navProfile', language) : otherUser.name,
+          } : undefined,
+        };
+      });
       setMessages(mapped);
     }
     setLoading(false);
@@ -128,14 +140,21 @@ export default function ChatWindow({ user: otherUser, onClose }: ChatWindowProps
       return;
     }
 
-    await supabase.from('messages').insert({
+    const insertData: any = {
       sender_id: currentUser.id,
       receiver_id: otherUser.user_id,
       content: input.trim(),
       type: 'text',
-    });
+    };
+
+    if (replyTo?.dbId) {
+      insertData.reply_to_id = replyTo.dbId;
+    }
+
+    await supabase.from('messages').insert(insertData);
 
     setInput('');
+    setReplyTo(null);
     setShowEmoji(false);
     setMediaTab('none');
   };
@@ -164,7 +183,39 @@ export default function ChatWindow({ user: otherUser, onClose }: ChatWindowProps
     navigator.clipboard.writeText(msg.text);
     toast.success(t('msgCopied', language));
   };
-  const handleForwardMsg = () => toast.success(t('msgForwarded', language));
+  const handleForwardMsg = async (msg: ChatMessage) => {
+    if (!currentUser) return;
+    // Fetch users we've chatted with
+    const { data: msgs } = await supabase
+      .from('messages')
+      .select('sender_id, receiver_id')
+      .or(`sender_id.eq.${currentUser.id},receiver_id.eq.${currentUser.id}`);
+
+    if (msgs) {
+      const otherIds = [...new Set(msgs.flatMap(m => [m.sender_id, m.receiver_id]).filter(id => id !== currentUser.id && id !== otherUser.user_id))];
+      if (otherIds.length > 0) {
+        const { data: profiles } = await supabase.from('profiles').select('*').in('user_id', otherIds);
+        setForwardUsers((profiles || []) as Profile[]);
+      } else {
+        setForwardUsers([]);
+      }
+    }
+    setForwardMsg(msg);
+  };
+
+  const doForward = async (targetUserId: string) => {
+    if (!currentUser || !forwardMsg) return;
+    await supabase.from('messages').insert({
+      sender_id: currentUser.id,
+      receiver_id: targetUserId,
+      content: forwardMsg.text,
+      type: forwardMsg.type || 'text',
+      media_url: forwardMsg.mediaUrl || '',
+    });
+    setForwardMsg(null);
+    setForwardUsers([]);
+    toast.success(t('msgForwarded', language));
+  };
 
   const handlePhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -516,9 +567,58 @@ export default function ChatWindow({ user: otherUser, onClose }: ChatWindowProps
           onEdit={() => { if (contextMenu.msg.fromMe) handleEditMsg(contextMenu.msg); setContextMenu(null); }}
           onReply={() => { handleReplyMsg(contextMenu.msg); setContextMenu(null); }}
           onCopy={() => { handleCopyMsg(contextMenu.msg); setContextMenu(null); }}
-          onForward={() => { handleForwardMsg(); setContextMenu(null); }}
+          onForward={() => { handleForwardMsg(contextMenu.msg); setContextMenu(null); }}
         />
       )}
+
+      {/* Forward modal */}
+      <AnimatePresence>
+        {forwardMsg && (
+          <motion.div
+            className="fixed inset-0 z-[300] flex items-center justify-center p-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <div className="absolute inset-0 bg-background/70 backdrop-blur-sm" onClick={() => { setForwardMsg(null); setForwardUsers([]); }} />
+            <motion.div
+              className="relative glass-panel-strong p-5 w-full max-w-sm rounded-2xl border border-border"
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+            >
+              <h3 className="text-sm font-semibold mb-3">{t('msgForward', language)}</h3>
+              <div className="mb-3 px-3 py-2 rounded-xl bg-secondary/30 border border-border text-xs text-muted-foreground truncate">
+                {forwardMsg.text}
+              </div>
+              {forwardUsers.length === 0 ? (
+                <p className="text-center text-muted-foreground text-xs py-4">{t('noResults', language)}</p>
+              ) : (
+                <div className="space-y-1 max-h-60 overflow-y-auto">
+                  {forwardUsers.map(u => (
+                    <button
+                      key={u.user_id}
+                      onClick={() => doForward(u.user_id)}
+                      className="w-full flex items-center gap-3 p-2.5 rounded-xl hover:bg-accent transition-colors text-left"
+                    >
+                      <div className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center border border-border overflow-hidden">
+                        {u.avatar_url ? <img src={u.avatar_url} alt={u.name} className="w-full h-full object-cover rounded-full" /> : <User size={16} className="text-muted-foreground" />}
+                      </div>
+                      <span className="text-sm font-medium">{u.name}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+              <button
+                onClick={() => { setForwardMsg(null); setForwardUsers([]); }}
+                className="mt-3 w-full py-2 rounded-xl border border-border text-xs text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {t('cancel', language)}
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       {/* Adventure Plan Modal */}
       <AdventurePlanModal
         otherUserId={otherUser.user_id}
