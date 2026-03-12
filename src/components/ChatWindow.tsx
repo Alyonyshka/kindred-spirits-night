@@ -183,7 +183,39 @@ export default function ChatWindow({ user: otherUser, onClose }: ChatWindowProps
     navigator.clipboard.writeText(msg.text);
     toast.success(t('msgCopied', language));
   };
-  const handleForwardMsg = () => toast.success(t('msgForwarded', language));
+  const handleForwardMsg = async (msg: ChatMessage) => {
+    if (!currentUser) return;
+    // Fetch users we've chatted with
+    const { data: msgs } = await supabase
+      .from('messages')
+      .select('sender_id, receiver_id')
+      .or(`sender_id.eq.${currentUser.id},receiver_id.eq.${currentUser.id}`);
+
+    if (msgs) {
+      const otherIds = [...new Set(msgs.flatMap(m => [m.sender_id, m.receiver_id]).filter(id => id !== currentUser.id && id !== otherUser.user_id))];
+      if (otherIds.length > 0) {
+        const { data: profiles } = await supabase.from('profiles').select('*').in('user_id', otherIds);
+        setForwardUsers((profiles || []) as Profile[]);
+      } else {
+        setForwardUsers([]);
+      }
+    }
+    setForwardMsg(msg);
+  };
+
+  const doForward = async (targetUserId: string) => {
+    if (!currentUser || !forwardMsg) return;
+    await supabase.from('messages').insert({
+      sender_id: currentUser.id,
+      receiver_id: targetUserId,
+      content: forwardMsg.text,
+      type: forwardMsg.type || 'text',
+      media_url: forwardMsg.mediaUrl || '',
+    });
+    setForwardMsg(null);
+    setForwardUsers([]);
+    toast.success(t('msgForwarded', language));
+  };
 
   const handlePhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
