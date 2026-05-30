@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import ChatWindow from '@/components/ChatWindow';
+import SEO from '@/components/SEO';
 
 export default function Favorites() {
   const { language, user } = useApp();
@@ -76,7 +77,8 @@ export default function Favorites() {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-lg font-bold amber-glow">{t('navFavorites', language)}</h2>
+      <SEO title="Favorites — Drink Mate" description="Your saved drinking buddies. Quickly message, propose a meetup, or revisit favorite profiles." path="/favorites" />
+      <h1 className="text-lg font-bold amber-glow">{t('navFavorites', language)}</h1>
       {profiles.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">
           <Heart size={32} className="mx-auto mb-2 opacity-30" />

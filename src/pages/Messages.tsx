@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { useBlocking } from '@/hooks/useBlocking';
 import { motion, AnimatePresence } from 'framer-motion';
 import ChatWindow from '@/components/ChatWindow';
+import SEO from '@/components/SEO';
 import type { Profile } from '@/hooks/useAuth';
 
 interface Meeting {
@@ -186,6 +187,8 @@ export default function Messages() {
 
   return (
     <div className="space-y-4">
+      <SEO title="Messages & Meetups — Drink Mate" description="Chat with drinking buddies, review meeting invites, and plan your next night out — all in one place." path="/messages" />
+      <h1 className="sr-only">Messages & Meetup Invites</h1>
       {/* Meeting invites */}
       {meetings.length > 0 && (
         <div className="space-y-2">
@@ -263,6 +266,7 @@ export default function Messages() {
                 onClick={(e) => handleDeleteChat(e, chat.id)}
                 className="ml-1 p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
                 title={t('delete', language)}
+                aria-label={t('delete', language)}
               >
                 <Trash2 size={16} />
               </button>

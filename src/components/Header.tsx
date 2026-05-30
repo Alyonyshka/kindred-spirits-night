@@ -76,7 +76,7 @@ export default function Header() {
             >
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-bold amber-glow">{t('location', language)}</h2>
-                <button onClick={() => setShowCities(false)} className="p-1 rounded-lg hover:bg-accent transition-colors">
+                <button onClick={() => setShowCities(false)} aria-label="Close" className="p-1 rounded-lg hover:bg-accent transition-colors">
                   <X size={20} />
                 </button>
               </div>

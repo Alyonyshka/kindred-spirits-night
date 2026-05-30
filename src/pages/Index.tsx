@@ -6,6 +6,7 @@ import FriendOfWeek from '@/components/FriendOfWeek';
 import { supabase } from '@/integrations/supabase/client';
 import type { Profile } from '@/hooks/useAuth';
 import { t } from '@/lib/i18n';
+import SEO from '@/components/SEO';
 
 export default function Index() {
   const { city, language, user } = useApp();
@@ -51,6 +52,8 @@ export default function Index() {
 
   return (
     <div className="space-y-4">
+      <SEO title="Find Drinking Buddies — Drink Mate" description="Browse like-minded drinking buddies in your city. Filter by drinks, interests, and vibe to find your next night out companion." path="/" />
+      <h1 className="sr-only">Find Drinking Buddies Near You</h1>
       <FriendOfWeek profiles={profiles} />
       <FilterBar
         selectedInterests={selectedInterests} setSelectedInterests={setSelectedInterests}
