@@ -1,0 +1,11 @@
+# Drink Mate
+
+> The night out companion — find drinking buddies, plan bar nights, and join local hangouts so you never have to drink alone.
+
+Drink Mate is a social app for adults who want company for going out. Users create a profile (favorite drinks, vibe, interests, city), browse other members nearby, chat, and join or create real-world events at bars and venues.
+
+## Pages
+
+- [Home](/): Browse drinking buddies in your city, filter by drinks, interests, and alcohol level.
+- [Events](/events): Public bar nights and hangouts you can join or host.
+- [About](/about): What Drink Mate is, who it's for, and the manifesto behind it.
