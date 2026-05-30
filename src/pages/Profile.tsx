@@ -8,6 +8,7 @@ import type { Profile as ProfileType } from '@/hooks/useAuth';
 import { useBlocking } from '@/hooks/useBlocking';
 import { motion, AnimatePresence } from 'framer-motion';
 import ChatWindow from '@/components/ChatWindow';
+import SEO from '@/components/SEO';
 
 interface MeetingWithProfile {
   id: string;
@@ -246,13 +247,15 @@ export default function Profile() {
 
   return (
     <div className="space-y-4">
+      <SEO title="Your Profile — Drink Mate" description="Edit your Drink Mate profile: photo, favorite drinks, alcohol level, interests, and city." path="/profile" />
+      <h1 className="sr-only">Your Profile</h1>
       {/* Avatar */}
       <div className="flex flex-col items-center">
         <div className="relative">
           <div className="w-24 h-24 rounded-full bg-secondary flex items-center justify-center border-2 border-border overflow-hidden">
-            {avatar ? <img src={avatar} alt="avatar" className="w-full h-full object-cover" /> : <User size={40} className="text-muted-foreground" />}
+            {avatar ? <img src={avatar} alt="Your profile photo" className="w-full h-full object-cover" /> : <User size={40} className="text-muted-foreground" />}
           </div>
-          <button onClick={() => fileRef.current?.click()} className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center border-2 border-card">
+          <button onClick={() => fileRef.current?.click()} aria-label="Upload profile photo" className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center border-2 border-card">
             <Camera size={14} />
           </button>
           <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handlePhoto} />

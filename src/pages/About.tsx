@@ -2,6 +2,7 @@ import { Heart, Users, GlassWater, Search, Shield, Sparkles, Wine, PartyPopper }
 import { motion } from 'framer-motion';
 import { useApp } from '@/contexts/AppContext';
 import { t } from '@/lib/i18n';
+import SEO from '@/components/SEO';
 
 const fadeIn = (delay: number) => ({
   initial: { opacity: 0, y: 16 },
@@ -14,9 +15,10 @@ export default function About() {
 
   return (
     <div className="space-y-6 pb-8">
+      <SEO title="About Drink Mate — Your Night Out Companion" description="Learn why Drink Mate exists: a social app for adults who want company for nights out, bar hops, and toasts." path="/about" />
       {/* Hero */}
       <motion.div className="text-center py-4" {...fadeIn(0)}>
-        <h1 className="text-2xl font-black amber-glow-strong mb-1">{t('appName', language)}</h1>
+        <h1 className="text-2xl font-black amber-glow-strong mb-1">About {t('appName', language)} — The Night Out Companion</h1>
         <p className="text-xs tracking-[0.15em] text-muted-foreground font-medium">THE NIGHT OUT COMPANION</p>
       </motion.div>
 

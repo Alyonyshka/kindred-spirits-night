@@ -9,6 +9,7 @@ import type { Profile } from '@/hooks/useAuth';
 import { useBlocking } from '@/hooks/useBlocking';
 import { useFavorites } from '@/hooks/useFavorites';
 import ChatWindow from '@/components/ChatWindow';
+import SEO from '@/components/SEO';
 
 interface DbEvent {
   id: string;
@@ -200,6 +201,8 @@ export default function Events() {
 
   return (
     <div className="space-y-4">
+      <SEO title="Bar Events & Hangouts — Drink Mate" description="Find or create local bar nights, tastings, and hangouts. Join events near you and meet new drinking buddies." path="/events" />
+      <h1 className="sr-only">Bar Events & Hangouts</h1>
       <div className="flex items-center gap-2">
         <div className="relative flex-1">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -246,6 +249,7 @@ export default function Events() {
                     onClick={() => handleDeleteEvent(event.id)}
                     className="p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
                     title={event.creator_id === user?.id ? t('msgDeleted', language) : t('leave', language)}
+                    aria-label={event.creator_id === user?.id ? t('msgDeleted', language) : t('leave', language)}
                   >
                     <X size={16} />
                   </button>
