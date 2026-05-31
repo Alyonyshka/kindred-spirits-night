@@ -1,14 +1,15 @@
 import { useState, useEffect } from 'react';
-import { Plus, Search, Calendar, MapPin, Users, Clock, X, User, MessageCircle, Handshake, Ban, Star, Heart } from 'lucide-react';
+import { Plus, Search, Calendar, MapPin, Users, Clock, X, User } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
 import { t, drinkKeys } from '@/lib/i18n';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import type { Profile } from '@/hooks/useAuth';
 import { useBlocking } from '@/hooks/useBlocking';
 import { useFavorites } from '@/hooks/useFavorites';
 import ChatWindow from '@/components/ChatWindow';
+import ProfileModal from '@/components/ProfileModal';
 import SEO from '@/components/SEO';
 
 interface DbEvent {
