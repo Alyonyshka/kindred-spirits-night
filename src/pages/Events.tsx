@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Plus, Search, Calendar, MapPin, Users, Clock, X, User } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
 import { t, drinkKeys } from '@/lib/i18n';
-import { AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import type { Profile } from '@/hooks/useAuth';
