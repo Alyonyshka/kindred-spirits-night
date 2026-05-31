@@ -307,6 +307,7 @@ export const translations: Record<string, Record<Language, string>> = {
   online: { ru: 'В сети', en: 'Online', ua: 'Онлайн' },
   offline: { ru: 'Не в сети', en: 'Offline', ua: 'Офлайн' },
   rating: { ru: 'Рейтинг', en: 'Rating', ua: 'Рейтинг' },
+  rateAfterMeeting: { ru: 'Оценить можно только после подтверждения встречи', en: 'You can rate only after a confirmed meeting', ua: 'Оцінити можна лише після підтвердженої зустрічі' },
   save: { ru: 'Сохранить', en: 'Save', ua: 'Зберегти' },
   cancel: { ru: 'Отмена', en: 'Cancel', ua: 'Скасувати' },
   accept: { ru: 'Принять', en: 'Accept', ua: 'Прийняти' },
