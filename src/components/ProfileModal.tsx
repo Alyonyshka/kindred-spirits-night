@@ -29,11 +29,11 @@ export default function ProfileModal({ profile: p, onClose, onMessage }: Profile
   useEffect(() => {
     if (!currentUser) return;
     const check = async () => {
-      // Confirmed meeting check (any direction)
+      // Brudershaft-confirmed meeting check (any direction)
       const { data: meet } = await supabase
         .from('meetings')
         .select('id')
-        .eq('status', 'confirmed')
+        .not('met_at', 'is', null)
         .or(`and(requester_id.eq.${currentUser.id},receiver_id.eq.${p.user_id}),and(requester_id.eq.${p.user_id},receiver_id.eq.${currentUser.id})`)
         .limit(1);
       setCanRate((meet?.length || 0) > 0);
@@ -47,6 +47,13 @@ export default function ProfileModal({ profile: p, onClose, onMessage }: Profile
       if (ratingData) setMyRating(ratingData.rating);
     };
     check();
+
+    // Realtime: if brudershaft happens while modal is open, unlock stars instantly
+    const ch = supabase
+      .channel(`profile-meetings-${p.user_id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'meetings' }, () => check())
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
   }, [currentUser?.id, p.user_id]);
 
   const handleRate = async (stars: number) => {
