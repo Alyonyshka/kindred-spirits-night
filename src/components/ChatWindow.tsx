@@ -636,6 +636,16 @@ export default function ChatWindow({ user: otherUser, onClose }: ChatWindowProps
         isOpen={showAdventure}
         onClose={() => setShowAdventure(false)}
       />
+      {/* Brudershaft Modal */}
+      <AnimatePresence>
+        {showBrudershaft && (
+          <BrudershaftModal
+            otherUserId={otherUser.user_id}
+            otherUserName={otherUser.name}
+            onClose={() => setShowBrudershaft(false)}
+          />
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
