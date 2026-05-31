@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { X, Send, User, Image, Video, Mic, MicOff, Smile, Paperclip, Reply, Edit2, Sparkles } from 'lucide-react';
+import { X, Send, User, Image, Video, Mic, MicOff, Smile, Paperclip, Reply, Edit2, Sparkles, Beer } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
 import { t } from '@/lib/i18n';
 import { supabase } from '@/integrations/supabase/client';
@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import MessageContextMenu from './MessageContextMenu';
 import AdventurePlanModal from './AdventurePlanModal';
 import ChatEmojiStickers from './ChatEmojiStickers';
+import BrudershaftModal from './BrudershaftModal';
 
 interface ChatWindowProps {
   user: Profile;
@@ -35,6 +36,7 @@ export default function ChatWindow({ user: otherUser, onClose }: ChatWindowProps
   const { language, user: currentUser } = useApp();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [showAdventure, setShowAdventure] = useState(false);
+  const [showBrudershaft, setShowBrudershaft] = useState(false);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [showEmoji, setShowEmoji] = useState(false);
@@ -370,6 +372,14 @@ export default function ChatWindow({ user: otherUser, onClose }: ChatWindowProps
             </span>
           </div>
           <button
+            onClick={() => setShowBrudershaft(true)}
+            className="p-2 rounded-lg hover:bg-accent transition-colors group"
+            title={t('weMet', language)}
+            aria-label={t('weMet', language)}
+          >
+            <Beer size={20} className="text-primary group-hover:animate-pulse" style={{ filter: 'drop-shadow(0 0 4px hsl(var(--primary) / 0.5))' }} />
+          </button>
+          <button
             onClick={() => setShowAdventure(true)}
             className="p-2 rounded-lg hover:bg-accent transition-colors group"
             title={t('adventureGenerator', language)}
@@ -626,6 +636,16 @@ export default function ChatWindow({ user: otherUser, onClose }: ChatWindowProps
         isOpen={showAdventure}
         onClose={() => setShowAdventure(false)}
       />
+      {/* Brudershaft Modal */}
+      <AnimatePresence>
+        {showBrudershaft && (
+          <BrudershaftModal
+            otherUserId={otherUser.user_id}
+            otherUserName={otherUser.name}
+            onClose={() => setShowBrudershaft(false)}
+          />
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }

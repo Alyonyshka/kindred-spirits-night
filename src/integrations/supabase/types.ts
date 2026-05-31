@@ -159,24 +159,33 @@ export type Database = {
       }
       meetings: {
         Row: {
+          brudershaft_code: string | null
+          brudershaft_initiator_id: string | null
           created_at: string
           id: string
+          met_at: string | null
           receiver_id: string
           requester_id: string
           status: Database["public"]["Enums"]["meeting_status"] | null
           updated_at: string
         }
         Insert: {
+          brudershaft_code?: string | null
+          brudershaft_initiator_id?: string | null
           created_at?: string
           id?: string
+          met_at?: string | null
           receiver_id: string
           requester_id: string
           status?: Database["public"]["Enums"]["meeting_status"] | null
           updated_at?: string
         }
         Update: {
+          brudershaft_code?: string | null
+          brudershaft_initiator_id?: string | null
           created_at?: string
           id?: string
+          met_at?: string | null
           receiver_id?: string
           requester_id?: string
           status?: Database["public"]["Enums"]["meeting_status"] | null
