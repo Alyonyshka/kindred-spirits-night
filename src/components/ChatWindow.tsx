@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import MessageContextMenu from './MessageContextMenu';
 import AdventurePlanModal from './AdventurePlanModal';
 import ChatEmojiStickers from './ChatEmojiStickers';
+import BrudershaftModal from './BrudershaftModal';
 
 interface ChatWindowProps {
   user: Profile;
