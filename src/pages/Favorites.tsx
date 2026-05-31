@@ -1,14 +1,15 @@
 import { useState, useEffect } from 'react';
-import { Heart, User, MessageCircle, Handshake, Ban, Star } from 'lucide-react';
+import { Heart, User, MessageCircle, Handshake } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
 import { t } from '@/lib/i18n';
 import type { Profile } from '@/hooks/useAuth';
 import { useBlocking } from '@/hooks/useBlocking';
 import { useFavorites } from '@/hooks/useFavorites';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import ChatWindow from '@/components/ChatWindow';
+import ProfileModal from '@/components/ProfileModal';
 import SEO from '@/components/SEO';
 
 export default function Favorites() {
