@@ -372,6 +372,14 @@ export default function ChatWindow({ user: otherUser, onClose }: ChatWindowProps
             </span>
           </div>
           <button
+            onClick={() => setShowBrudershaft(true)}
+            className="p-2 rounded-lg hover:bg-accent transition-colors group"
+            title={t('weMet', language)}
+            aria-label={t('weMet', language)}
+          >
+            <Beer size={20} className="text-primary group-hover:animate-pulse" style={{ filter: 'drop-shadow(0 0 4px hsl(var(--primary) / 0.5))' }} />
+          </button>
+          <button
             onClick={() => setShowAdventure(true)}
             className="p-2 rounded-lg hover:bg-accent transition-colors group"
             title={t('adventureGenerator', language)}
