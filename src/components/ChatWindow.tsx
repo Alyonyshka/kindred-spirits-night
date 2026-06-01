@@ -187,16 +187,47 @@ export default function ChatWindow({ user: otherUser, onClose }: ChatWindowProps
     navigator.clipboard.writeText(msg.text);
     toast.success(t('msgCopied', language));
   };
-  const handleForwardMsg = async (msg: ChatMessage) => {
-    if (!currentUser) return;
-    // Fetch users we've chatted with
+  // Determine contiguous thread (run of same sender) around a message
+  const computeThreadIds = (msg: ChatMessage): string[] => {
+    const idx = messages.findIndex(m => m.id === msg.id);
+    if (idx < 0) return [msg.id];
+    const ids = [msg.id];
+    for (let i = idx - 1; i >= 0; i--) {
+      if (messages[i].fromMe === msg.fromMe) ids.unshift(messages[i].id); else break;
+    }
+    for (let i = idx + 1; i < messages.length; i++) {
+      if (messages[i].fromMe === msg.fromMe) ids.push(messages[i].id); else break;
+    }
+    return ids;
+  };
+
+  const handleForwardMsg = (msg: ChatMessage) => {
+    setSelectedIds(new Set(computeThreadIds(msg)));
+    setSelectionMode(true);
+  };
+
+  const toggleSelected = (id: string) => {
+    setSelectedIds(prev => {
+      const n = new Set(prev);
+      if (n.has(id)) n.delete(id); else n.add(id);
+      return n;
+    });
+  };
+
+  const cancelSelection = () => {
+    setSelectionMode(false);
+    setSelectedIds(new Set());
+    setForwardPickerOpen(false);
+  };
+
+  const openForwardPicker = async () => {
+    if (!currentUser || selectedIds.size === 0) return;
     const { data: msgs } = await supabase
       .from('messages')
       .select('sender_id, receiver_id')
       .or(`sender_id.eq.${currentUser.id},receiver_id.eq.${currentUser.id}`);
-
     if (msgs) {
-      const otherIds = [...new Set(msgs.flatMap(m => [m.sender_id, m.receiver_id]).filter(id => id !== currentUser.id && id !== otherUser.user_id))];
+      const otherIds = [...new Set(msgs.flatMap(m => [m.sender_id, m.receiver_id]).filter(id => id !== currentUser.id))];
       if (otherIds.length > 0) {
         const { data: profiles } = await supabase.from('profiles').select('*').in('user_id', otherIds);
         setForwardUsers((profiles || []) as Profile[]);
@@ -204,22 +235,44 @@ export default function ChatWindow({ user: otherUser, onClose }: ChatWindowProps
         setForwardUsers([]);
       }
     }
-    setForwardMsg(msg);
+    setForwardPickerOpen(true);
   };
 
   const doForward = async (targetUserId: string) => {
-    if (!currentUser || !forwardMsg) return;
-    await supabase.from('messages').insert({
-      sender_id: currentUser.id,
-      receiver_id: targetUserId,
-      content: forwardMsg.text,
-      type: forwardMsg.type || 'text',
-      media_url: forwardMsg.mediaUrl || '',
-    });
-    setForwardMsg(null);
-    setForwardUsers([]);
+    if (!currentUser || selectedIds.size === 0) return;
+    // Pick selected messages in chronological (display) order
+    const ordered = messages.filter(m => selectedIds.has(m.id));
+    // Group consecutive messages by author
+    const groups: { authorName: string; items: ChatMessage[] }[] = [];
+    for (const m of ordered) {
+      const authorName = m.fromMe ? (currentUser.name || t('navProfile', language)) : otherUser.name;
+      const last = groups[groups.length - 1];
+      if (last && last.authorName === authorName) last.items.push(m);
+      else groups.push({ authorName, items: [m] });
+    }
+    // Insert sequentially: header + each original message
+    for (const g of groups) {
+      await supabase.from('messages').insert({
+        sender_id: currentUser.id,
+        receiver_id: targetUserId,
+        content: `↪ ${t('msgForwardedFrom', language)} ${g.authorName}`,
+        type: 'text',
+        media_url: '',
+      });
+      for (const m of g.items) {
+        await supabase.from('messages').insert({
+          sender_id: currentUser.id,
+          receiver_id: targetUserId,
+          content: m.text || '',
+          type: m.type || 'text',
+          media_url: m.mediaUrl || '',
+        });
+      }
+    }
+    cancelSelection();
     toast.success(t('msgForwarded', language));
   };
+
 
   const MAX_PHOTO_BYTES = 5 * 1024 * 1024; // 5 MB
   const MAX_VIDEO_BYTES = 10 * 1024 * 1024; // 10 MB
