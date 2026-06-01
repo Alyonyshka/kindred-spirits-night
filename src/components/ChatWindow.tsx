@@ -459,6 +459,33 @@ export default function ChatWindow({ user: otherUser, onClose }: ChatWindowProps
           </button>
         </div>
 
+        {/* Selection toolbar */}
+        <AnimatePresence>
+          {selectionMode && (
+            <motion.div
+              initial={{ y: -20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: -20, opacity: 0 }}
+              className="glass-panel-strong border-b border-border/50 px-4 py-2 flex items-center gap-2"
+            >
+              <button onClick={cancelSelection} className="p-1 hover:bg-accent rounded">
+                <X size={16} />
+              </button>
+              <span className="text-xs text-muted-foreground flex-1">
+                {t('msgSelectedCount', language)}: {selectedIds.size}
+              </span>
+              <button
+                onClick={openForwardPicker}
+                disabled={selectedIds.size === 0}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-medium disabled:opacity-50"
+              >
+                <Forward size={14} />
+                {t('msgForwardSelected', language)}
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* Messages */}
         <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3 scrollbar-hide">
           {loading ? (
@@ -466,20 +493,32 @@ export default function ChatWindow({ user: otherUser, onClose }: ChatWindowProps
           ) : messages.length === 0 ? (
             <p className="text-center text-muted-foreground text-sm py-8">{t('noResults', language)}</p>
           ) : (
-            messages.map(msg => (
-              <div key={msg.id} className={`flex ${msg.fromMe ? 'justify-end' : 'justify-start'}`}>
+            messages.map(msg => {
+              const isSelected = selectedIds.has(msg.id);
+              return (
+              <div key={msg.id} className={`flex items-center gap-2 ${msg.fromMe ? 'justify-end' : 'justify-start'}`}>
+                {selectionMode && !msg.fromMe && (
+                  <button
+                    onClick={() => toggleSelected(msg.id)}
+                    className={`w-5 h-5 shrink-0 rounded border flex items-center justify-center transition-colors ${isSelected ? 'bg-primary border-primary text-primary-foreground' : 'border-border'}`}
+                  >
+                    {isSelected && <Check size={12} />}
+                  </button>
+                )}
                 <div
-                  onContextMenu={(e) => handleMsgContextMenu(e, msg)}
+                  onContextMenu={(e) => { if (!selectionMode) handleMsgContextMenu(e, msg); }}
+                  onClick={() => { if (selectionMode) toggleSelected(msg.id); }}
                   onTouchStart={(e) => {
+                    if (selectionMode) return;
                     const timer = setTimeout(() => handleMsgContextMenu(e, msg), 500);
                     const clear = () => { clearTimeout(timer); e.currentTarget.removeEventListener('touchend', clear); };
                     e.currentTarget.addEventListener('touchend', clear);
                   }}
-                  className={`max-w-[75%] px-4 py-2.5 rounded-2xl text-sm cursor-pointer select-none ${
+                  className={`max-w-[75%] px-4 py-2.5 rounded-2xl text-sm cursor-pointer select-none transition-all ${
                     msg.fromMe
                       ? 'bg-primary text-primary-foreground rounded-br-md'
                       : 'glass-panel border border-border rounded-bl-md'
-                  }`}
+                  } ${selectionMode && isSelected ? 'ring-2 ring-primary' : ''}`}
                 >
                   {msg.replyTo && (
                     <div className={`mb-1.5 px-2 py-1 rounded-lg border-l-2 text-[11px] ${
@@ -518,10 +557,20 @@ export default function ChatWindow({ user: otherUser, onClose }: ChatWindowProps
                     {msg.time} {msg.edited && `· ${t('msgEdited', language)}`} {msg.fromMe && (msg.read ? '✓✓' : '✓')}
                   </span>
                 </div>
+                {selectionMode && msg.fromMe && (
+                  <button
+                    onClick={() => toggleSelected(msg.id)}
+                    className={`w-5 h-5 shrink-0 rounded border flex items-center justify-center transition-colors ${isSelected ? 'bg-primary border-primary text-primary-foreground' : 'border-border'}`}
+                  >
+                    {isSelected && <Check size={12} />}
+                  </button>
+                )}
               </div>
-            ))
+              );
+            })
           )}
         </div>
+
 
         {/* Emoji/Stickers/GIF picker */}
         <AnimatePresence>
