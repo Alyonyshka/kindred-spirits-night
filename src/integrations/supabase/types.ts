@@ -329,6 +329,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      confirm_brudershaft: {
+        Args: { _code: string; _meeting_id: string }
+        Returns: boolean
+      }
       get_my_profile_id: { Args: never; Returns: string }
       is_blocked: { Args: { _user1: string; _user2: string }; Returns: boolean }
       is_meeting_participant: {
