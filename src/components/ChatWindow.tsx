@@ -245,7 +245,7 @@ export default function ChatWindow({ user: otherUser, onClose }: ChatWindowProps
     // Group consecutive messages by author
     const groups: { authorName: string; items: ChatMessage[] }[] = [];
     for (const m of ordered) {
-      const authorName = m.fromMe ? (currentUser.name || t('navProfile', language)) : otherUser.name;
+      const authorName = m.fromMe ? ((currentUser as any)?.user_metadata?.name || t('navProfile', language)) : otherUser.name;
       const last = groups[groups.length - 1];
       if (last && last.authorName === authorName) last.items.push(m);
       else groups.push({ authorName, items: [m] });
