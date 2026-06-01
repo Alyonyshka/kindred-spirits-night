@@ -219,9 +219,17 @@ export default function ChatWindow({ user: otherUser, onClose }: ChatWindowProps
     toast.success(t('msgForwarded', language));
   };
 
+  const MAX_PHOTO_BYTES = 5 * 1024 * 1024; // 5 MB
+  const MAX_VIDEO_BYTES = 10 * 1024 * 1024; // 10 MB
+
   const handlePhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !currentUser) return;
+    if (file.size > MAX_PHOTO_BYTES) {
+      toast.error('Max 5 MB');
+      e.target.value = '';
+      return;
+    }
     const reader = new FileReader();
     reader.onload = async () => {
       await supabase.from('messages').insert({
@@ -240,6 +248,11 @@ export default function ChatWindow({ user: otherUser, onClose }: ChatWindowProps
   const handleVideo = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !currentUser) return;
+    if (file.size > MAX_VIDEO_BYTES) {
+      toast.error('Max 10 MB');
+      e.target.value = '';
+      return;
+    }
     const reader = new FileReader();
     reader.onload = async () => {
       await supabase.from('messages').insert({
