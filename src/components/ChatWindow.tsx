@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { X, Send, User, Image, Video, Mic, MicOff, Smile, Paperclip, Reply, Edit2, Sparkles, Beer } from 'lucide-react';
+import { X, Send, User, Image, Video, Mic, MicOff, Smile, Paperclip, Reply, Edit2, Sparkles, Beer, Forward, Check } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
 import { t } from '@/lib/i18n';
 import { supabase } from '@/integrations/supabase/client';
@@ -45,7 +45,9 @@ export default function ChatWindow({ user: otherUser, onClose }: ChatWindowProps
   const [contextMenu, setContextMenu] = useState<{ msg: ChatMessage; x: number; y: number } | null>(null);
   const [editingMsg, setEditingMsg] = useState<ChatMessage | null>(null);
   const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
-  const [forwardMsg, setForwardMsg] = useState<ChatMessage | null>(null);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [forwardPickerOpen, setForwardPickerOpen] = useState(false);
   const [forwardUsers, setForwardUsers] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -185,16 +187,47 @@ export default function ChatWindow({ user: otherUser, onClose }: ChatWindowProps
     navigator.clipboard.writeText(msg.text);
     toast.success(t('msgCopied', language));
   };
-  const handleForwardMsg = async (msg: ChatMessage) => {
-    if (!currentUser) return;
-    // Fetch users we've chatted with
+  // Determine contiguous thread (run of same sender) around a message
+  const computeThreadIds = (msg: ChatMessage): string[] => {
+    const idx = messages.findIndex(m => m.id === msg.id);
+    if (idx < 0) return [msg.id];
+    const ids = [msg.id];
+    for (let i = idx - 1; i >= 0; i--) {
+      if (messages[i].fromMe === msg.fromMe) ids.unshift(messages[i].id); else break;
+    }
+    for (let i = idx + 1; i < messages.length; i++) {
+      if (messages[i].fromMe === msg.fromMe) ids.push(messages[i].id); else break;
+    }
+    return ids;
+  };
+
+  const handleForwardMsg = (msg: ChatMessage) => {
+    setSelectedIds(new Set(computeThreadIds(msg)));
+    setSelectionMode(true);
+  };
+
+  const toggleSelected = (id: string) => {
+    setSelectedIds(prev => {
+      const n = new Set(prev);
+      if (n.has(id)) n.delete(id); else n.add(id);
+      return n;
+    });
+  };
+
+  const cancelSelection = () => {
+    setSelectionMode(false);
+    setSelectedIds(new Set());
+    setForwardPickerOpen(false);
+  };
+
+  const openForwardPicker = async () => {
+    if (!currentUser || selectedIds.size === 0) return;
     const { data: msgs } = await supabase
       .from('messages')
       .select('sender_id, receiver_id')
       .or(`sender_id.eq.${currentUser.id},receiver_id.eq.${currentUser.id}`);
-
     if (msgs) {
-      const otherIds = [...new Set(msgs.flatMap(m => [m.sender_id, m.receiver_id]).filter(id => id !== currentUser.id && id !== otherUser.user_id))];
+      const otherIds = [...new Set(msgs.flatMap(m => [m.sender_id, m.receiver_id]).filter(id => id !== currentUser.id))];
       if (otherIds.length > 0) {
         const { data: profiles } = await supabase.from('profiles').select('*').in('user_id', otherIds);
         setForwardUsers((profiles || []) as Profile[]);
@@ -202,22 +235,44 @@ export default function ChatWindow({ user: otherUser, onClose }: ChatWindowProps
         setForwardUsers([]);
       }
     }
-    setForwardMsg(msg);
+    setForwardPickerOpen(true);
   };
 
   const doForward = async (targetUserId: string) => {
-    if (!currentUser || !forwardMsg) return;
-    await supabase.from('messages').insert({
-      sender_id: currentUser.id,
-      receiver_id: targetUserId,
-      content: forwardMsg.text,
-      type: forwardMsg.type || 'text',
-      media_url: forwardMsg.mediaUrl || '',
-    });
-    setForwardMsg(null);
-    setForwardUsers([]);
+    if (!currentUser || selectedIds.size === 0) return;
+    // Pick selected messages in chronological (display) order
+    const ordered = messages.filter(m => selectedIds.has(m.id));
+    // Group consecutive messages by author
+    const groups: { authorName: string; items: ChatMessage[] }[] = [];
+    for (const m of ordered) {
+      const authorName = m.fromMe ? ((currentUser as any)?.user_metadata?.name || t('navProfile', language)) : otherUser.name;
+      const last = groups[groups.length - 1];
+      if (last && last.authorName === authorName) last.items.push(m);
+      else groups.push({ authorName, items: [m] });
+    }
+    // Insert sequentially: header + each original message
+    for (const g of groups) {
+      await supabase.from('messages').insert({
+        sender_id: currentUser.id,
+        receiver_id: targetUserId,
+        content: `↪ ${t('msgForwardedFrom', language)} ${g.authorName}`,
+        type: 'text',
+        media_url: '',
+      });
+      for (const m of g.items) {
+        await supabase.from('messages').insert({
+          sender_id: currentUser.id,
+          receiver_id: targetUserId,
+          content: m.text || '',
+          type: m.type || 'text',
+          media_url: m.mediaUrl || '',
+        });
+      }
+    }
+    cancelSelection();
     toast.success(t('msgForwarded', language));
   };
+
 
   const MAX_PHOTO_BYTES = 5 * 1024 * 1024; // 5 MB
   const MAX_VIDEO_BYTES = 10 * 1024 * 1024; // 10 MB
@@ -404,6 +459,33 @@ export default function ChatWindow({ user: otherUser, onClose }: ChatWindowProps
           </button>
         </div>
 
+        {/* Selection toolbar */}
+        <AnimatePresence>
+          {selectionMode && (
+            <motion.div
+              initial={{ y: -20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: -20, opacity: 0 }}
+              className="glass-panel-strong border-b border-border/50 px-4 py-2 flex items-center gap-2"
+            >
+              <button onClick={cancelSelection} className="p-1 hover:bg-accent rounded">
+                <X size={16} />
+              </button>
+              <span className="text-xs text-muted-foreground flex-1">
+                {t('msgSelectedCount', language)}: {selectedIds.size}
+              </span>
+              <button
+                onClick={openForwardPicker}
+                disabled={selectedIds.size === 0}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-medium disabled:opacity-50"
+              >
+                <Forward size={14} />
+                {t('msgForwardSelected', language)}
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* Messages */}
         <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3 scrollbar-hide">
           {loading ? (
@@ -411,20 +493,32 @@ export default function ChatWindow({ user: otherUser, onClose }: ChatWindowProps
           ) : messages.length === 0 ? (
             <p className="text-center text-muted-foreground text-sm py-8">{t('noResults', language)}</p>
           ) : (
-            messages.map(msg => (
-              <div key={msg.id} className={`flex ${msg.fromMe ? 'justify-end' : 'justify-start'}`}>
+            messages.map(msg => {
+              const isSelected = selectedIds.has(msg.id);
+              return (
+              <div key={msg.id} className={`flex items-center gap-2 ${msg.fromMe ? 'justify-end' : 'justify-start'}`}>
+                {selectionMode && !msg.fromMe && (
+                  <button
+                    onClick={() => toggleSelected(msg.id)}
+                    className={`w-5 h-5 shrink-0 rounded border flex items-center justify-center transition-colors ${isSelected ? 'bg-primary border-primary text-primary-foreground' : 'border-border'}`}
+                  >
+                    {isSelected && <Check size={12} />}
+                  </button>
+                )}
                 <div
-                  onContextMenu={(e) => handleMsgContextMenu(e, msg)}
+                  onContextMenu={(e) => { if (!selectionMode) handleMsgContextMenu(e, msg); }}
+                  onClick={() => { if (selectionMode) toggleSelected(msg.id); }}
                   onTouchStart={(e) => {
+                    if (selectionMode) return;
                     const timer = setTimeout(() => handleMsgContextMenu(e, msg), 500);
                     const clear = () => { clearTimeout(timer); e.currentTarget.removeEventListener('touchend', clear); };
                     e.currentTarget.addEventListener('touchend', clear);
                   }}
-                  className={`max-w-[75%] px-4 py-2.5 rounded-2xl text-sm cursor-pointer select-none ${
+                  className={`max-w-[75%] px-4 py-2.5 rounded-2xl text-sm cursor-pointer select-none transition-all ${
                     msg.fromMe
                       ? 'bg-primary text-primary-foreground rounded-br-md'
                       : 'glass-panel border border-border rounded-bl-md'
-                  }`}
+                  } ${selectionMode && isSelected ? 'ring-2 ring-primary' : ''}`}
                 >
                   {msg.replyTo && (
                     <div className={`mb-1.5 px-2 py-1 rounded-lg border-l-2 text-[11px] ${
@@ -463,10 +557,20 @@ export default function ChatWindow({ user: otherUser, onClose }: ChatWindowProps
                     {msg.time} {msg.edited && `· ${t('msgEdited', language)}`} {msg.fromMe && (msg.read ? '✓✓' : '✓')}
                   </span>
                 </div>
+                {selectionMode && msg.fromMe && (
+                  <button
+                    onClick={() => toggleSelected(msg.id)}
+                    className={`w-5 h-5 shrink-0 rounded border flex items-center justify-center transition-colors ${isSelected ? 'bg-primary border-primary text-primary-foreground' : 'border-border'}`}
+                  >
+                    {isSelected && <Check size={12} />}
+                  </button>
+                )}
               </div>
-            ))
+              );
+            })
           )}
         </div>
+
 
         {/* Emoji/Stickers/GIF picker */}
         <AnimatePresence>
@@ -594,26 +698,24 @@ export default function ChatWindow({ user: otherUser, onClose }: ChatWindowProps
         />
       )}
 
-      {/* Forward modal */}
+      {/* Forward target picker modal */}
       <AnimatePresence>
-        {forwardMsg && (
+        {forwardPickerOpen && (
           <motion.div
             className="fixed inset-0 z-[300] flex items-center justify-center p-4"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           >
-            <div className="absolute inset-0 bg-background/70 backdrop-blur-sm" onClick={() => { setForwardMsg(null); setForwardUsers([]); }} />
+            <div className="absolute inset-0 bg-background/70 backdrop-blur-sm" onClick={() => setForwardPickerOpen(false)} />
             <motion.div
               className="relative glass-panel-strong p-5 w-full max-w-sm rounded-2xl border border-border"
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
             >
-              <h3 className="text-sm font-semibold mb-3">{t('msgForward', language)}</h3>
-              <div className="mb-3 px-3 py-2 rounded-xl bg-secondary/30 border border-border text-xs text-muted-foreground truncate">
-                {forwardMsg.text}
-              </div>
+              <h3 className="text-sm font-semibold mb-1">{t('msgChooseChat', language)}</h3>
+              <p className="text-xs text-muted-foreground mb-3">{t('msgSelectedCount', language)}: {selectedIds.size}</p>
               {forwardUsers.length === 0 ? (
                 <p className="text-center text-muted-foreground text-xs py-4">{t('noResults', language)}</p>
               ) : (
@@ -633,7 +735,7 @@ export default function ChatWindow({ user: otherUser, onClose }: ChatWindowProps
                 </div>
               )}
               <button
-                onClick={() => { setForwardMsg(null); setForwardUsers([]); }}
+                onClick={() => setForwardPickerOpen(false)}
                 className="mt-3 w-full py-2 rounded-xl border border-border text-xs text-muted-foreground hover:text-foreground transition-colors"
               >
                 {t('cancel', language)}
@@ -642,6 +744,7 @@ export default function ChatWindow({ user: otherUser, onClose }: ChatWindowProps
           </motion.div>
         )}
       </AnimatePresence>
+
       {/* Adventure Plan Modal */}
       <AdventurePlanModal
         otherUserId={otherUser.user_id}
