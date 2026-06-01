@@ -649,26 +649,24 @@ export default function ChatWindow({ user: otherUser, onClose }: ChatWindowProps
         />
       )}
 
-      {/* Forward modal */}
+      {/* Forward target picker modal */}
       <AnimatePresence>
-        {forwardMsg && (
+        {forwardPickerOpen && (
           <motion.div
             className="fixed inset-0 z-[300] flex items-center justify-center p-4"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           >
-            <div className="absolute inset-0 bg-background/70 backdrop-blur-sm" onClick={() => { setForwardMsg(null); setForwardUsers([]); }} />
+            <div className="absolute inset-0 bg-background/70 backdrop-blur-sm" onClick={() => setForwardPickerOpen(false)} />
             <motion.div
               className="relative glass-panel-strong p-5 w-full max-w-sm rounded-2xl border border-border"
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
             >
-              <h3 className="text-sm font-semibold mb-3">{t('msgForward', language)}</h3>
-              <div className="mb-3 px-3 py-2 rounded-xl bg-secondary/30 border border-border text-xs text-muted-foreground truncate">
-                {forwardMsg.text}
-              </div>
+              <h3 className="text-sm font-semibold mb-1">{t('msgChooseChat', language)}</h3>
+              <p className="text-xs text-muted-foreground mb-3">{t('msgSelectedCount', language)}: {selectedIds.size}</p>
               {forwardUsers.length === 0 ? (
                 <p className="text-center text-muted-foreground text-xs py-4">{t('noResults', language)}</p>
               ) : (
@@ -688,7 +686,7 @@ export default function ChatWindow({ user: otherUser, onClose }: ChatWindowProps
                 </div>
               )}
               <button
-                onClick={() => { setForwardMsg(null); setForwardUsers([]); }}
+                onClick={() => setForwardPickerOpen(false)}
                 className="mt-3 w-full py-2 rounded-xl border border-border text-xs text-muted-foreground hover:text-foreground transition-colors"
               >
                 {t('cancel', language)}
@@ -697,6 +695,7 @@ export default function ChatWindow({ user: otherUser, onClose }: ChatWindowProps
           </motion.div>
         )}
       </AnimatePresence>
+
       {/* Adventure Plan Modal */}
       <AdventurePlanModal
         otherUserId={otherUser.user_id}
