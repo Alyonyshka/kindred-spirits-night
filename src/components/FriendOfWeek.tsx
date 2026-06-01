@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { Star, Trophy, User } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
 import { t } from '@/lib/i18n';
@@ -8,11 +9,19 @@ interface FriendOfWeekProps {
 }
 
 export default function FriendOfWeek({ profiles }: FriendOfWeekProps) {
-  const { language } = useApp();
+  const { language, city } = useApp();
 
-  if (profiles.length === 0) return null;
+  const friend = useMemo(() => {
+    const inCity = profiles.filter(p => p.city === city);
+    if (inCity.length === 0) return null;
+    const rated = inCity.filter(p => (p.rating || 0) > 0);
+    if (rated.length > 0) {
+      return rated.reduce((a, b) => ((a.rating || 0) > (b.rating || 0) ? a : b));
+    }
+    return inCity[Math.floor(Math.random() * inCity.length)];
+  }, [profiles, city]);
 
-  const friend = profiles.reduce((a, b) => ((a.rating || 0) > (b.rating || 0) ? a : b));
+  if (!friend) return null;
 
   return (
     <div className="glass-panel p-4 amber-border-glow animate-shimmer relative overflow-hidden">
