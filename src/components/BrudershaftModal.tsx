@@ -75,16 +75,15 @@ export default function BrudershaftModal({ otherUserId, otherUserName, onClose }
 
   const submitCode = async () => {
     if (!currentUser || !meeting) return;
-    if (!meeting.brudershaft_code || meeting.brudershaft_code !== inputCode.trim()) {
+    const { data, error } = await supabase.rpc('confirm_brudershaft', {
+      _meeting_id: meeting.id,
+      _code: inputCode.trim(),
+    });
+    if (error) { toast.error(error.message); return; }
+    if (data !== true) {
       toast.error(t('brudershaftWrong', language));
       return;
     }
-    const { error } = await supabase.from('meetings').update({
-      met_at: new Date().toISOString(),
-      status: 'confirmed',
-      brudershaft_code: null,
-    }).eq('id', meeting.id);
-    if (error) { toast.error(error.message); return; }
     toast.success(t('brudershaftConfirmed', language));
     setInputCode('');
     fetchMeeting();
