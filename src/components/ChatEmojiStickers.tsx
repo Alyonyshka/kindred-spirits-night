@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useApp } from '@/contexts/AppContext';
 import { t } from '@/lib/i18n';
 import { motion } from 'framer-motion';
@@ -13,43 +13,38 @@ interface Props {
 const EMOJI_CATEGORIES = [
   {
     label: '😀',
-    emojis: ['😀','😁','😂','🤣','😃','😄','😅','😆','😉','😊','😋','😎','😍','🥰','😘','😗','😙','😚','🙂','🤗','🤔','🤐','😐','😑','😶','😏','😒','🙄','😬','🤥','😌','😔','😪','🤤','😴','😷','🤒','🤕','🤢','🤮','🥴','😵','🤯','🤠','🥳','😈','👿','💀','☠️','👻','👽','🤖'],
+    emojis: ['😀','😁','😂','🤣','😃','😄','😅','😆','😉','😊','😋','😎','😍','🥰','😘','🙂','🤗','🤔','😐','😶','😏','😒','🙄','😬','😌','😔','😪','🤤','😴','🤒','🤕','🤢','🤮','🥴','😵','🤯','🤠','🥳','😈','👿','💀','👻','👽','🤖'],
   },
   {
     label: '🍻',
-    emojis: ['🍻','🍺','🍷','🥂','🍸','🍹','🍾','🥃','🧉','🍶','🫗','🍵','☕','🧃','🥤','🧋','🫖','🍼','🥛','🍇','🍈','🍉','🍊','🍋','🍌','🍍','🥭','🍎','🍏','🍐','🍑','🍒','🍓','🫐','🥝','🍅'],
+    emojis: ['🍻','🍺','🍷','🥂','🍸','🍹','🍾','🥃','🧉','🍶','🍵','☕','🥤','🧋','🍼','🥛','🍇','🍉','🍊','🍋','🍌','🍍','🍎','🍏','🍐','🍑','🍒','🍓','🥝','🍅'],
   },
   {
     label: '🎉',
-    emojis: ['🎉','🎊','🎈','🎂','🎁','🎆','🎇','✨','🎵','🎶','🎤','🎧','🎸','🎹','🥁','🎺','🎻','🎬','🎮','🎯','🎲','🎰','🃏','🏆','🥇','🏅','🎖️','🎗️','🎪','🎭','🎨'],
+    emojis: ['🎉','🎊','🎈','🎂','🎁','🎆','🎇','✨','🎵','🎶','🎤','🎧','🎸','🎹','🥁','🎺','🎻','🎬','🎮','🎯','🎲','🎰','🏆','🥇','🏅','🎪','🎭','🎨'],
   },
   {
     label: '❤️',
-    emojis: ['❤️','🧡','💛','💚','💙','💜','🖤','🤍','🤎','💔','❣️','💕','💞','💓','💗','💖','💘','💝','💟','♥️','🫶','👍','👎','✊','👊','🤛','🤜','👏','🙌','🤝','💪','🤟','🤘','✌️','🤞','🤙','👌'],
+    emojis: ['❤️','🧡','💛','💚','💙','💜','🖤','🤍','🤎','💔','💕','💞','💓','💗','💖','💘','💝','♥️','👍','👎','✊','👊','👏','🙌','🤝','💪','🤟','🤘','✌️','🤞','👌'],
   },
   {
     label: '🌙',
-    emojis: ['🌙','🌟','⭐','🔥','💥','⚡','🌈','☀️','🌤️','🌧️','❄️','💨','🌊','🏖️','🏝️','🌄','🌅','🌆','🌇','🌃','🌌','🎑','🏙️','🌉','🌁','🛸','🚀','🎠','🎡','🎢'],
+    emojis: ['🌙','🌟','⭐','🔥','💥','⚡','🌈','☀️','❄️','💨','🌊','🏖️','🏝️','🌄','🌅','🌆','🌇','🌃','🌌','🚀'],
   },
 ];
 
-// Alcohol-themed stickers (emoji combos rendered as "stickers")
-const STICKER_SETS = [
-  { id: 'party', label: '🥳', stickers: [
-    '🍻🥳🎉', '🍷😎✨', '🥂🎊💫', '🍸🌙🔥', '🍺💪😤',
-    '🥃🤠🎶', '🍹🏖️☀️', '🍾🎆🥳', '🫗😵‍💫🌀', '🧉🤙🎵',
-    '🍻👯‍♂️🎉', '🥂💋✨', '🍷🕯️🌹', '🍸🎰💰', '🍺🏆🥇',
-    '🥃🔥💀', '🍹🌈😍', '🍾💎👑', '🍻🎸🤘', '🥂🎭🎪',
-  ]},
-  { id: 'mood', label: '😵‍💫', stickers: [
-    '😵‍💫🍺🌀', '🤪🍹🎭', '😈🥃🔥', '🥴🍷💫', '🤯🍸⚡',
-    '😎🍻🎶', '🥳🍾🎊', '💀🥃☠️', '🤤🍺🍕', '😴🍷💤',
-    '🤑🍸💰', '🥶🍹❄️', '😱🍻👻', '🤩🥂⭐', '😏🍷🌙',
-    '🫠🍺🫗', '🤓🥃📚', '🥸🍸🕵️', '😤🍻💢', '🫡🥂🎖️',
-  ]},
-];
+// Twemoji CDN — renders emoji as consistent images across all devices
+const toTwemojiUrl = (emoji: string): string => {
+  const codepoints: string[] = [];
+  for (const ch of emoji) {
+    const cp = ch.codePointAt(0);
+    if (cp && cp !== 0xfe0f) codepoints.push(cp.toString(16));
+  }
+  return `https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/${codepoints.join('-')}.png`;
+};
 
-const TENOR_API_KEY = 'AIzaSyAyimkuYQYF_FXVALexPuGQctUWRURdCYQ'; // Public Tenor API key
+const TENOR_API_KEY = 'AIzaSyAyimkuYQYF_FXVALexPuGQctUWRURdCYQ';
+const STICKER_QUERIES = ['party', 'cheers', 'cocktail', 'bar', 'beer', 'drunk', 'friends', 'wine', 'dance', 'celebrate'];
 
 export default function ChatEmojiStickers({ onSelectEmoji, onSendSticker, onSendGif }: Props) {
   const { language } = useApp();
@@ -58,32 +53,44 @@ export default function ChatEmojiStickers({ onSelectEmoji, onSendSticker, onSend
   const [gifSearch, setGifSearch] = useState('');
   const [gifs, setGifs] = useState<string[]>([]);
   const [gifLoading, setGifLoading] = useState(false);
+  const [stickers, setStickers] = useState<string[]>([]);
+  const [stickerLoading, setStickerLoading] = useState(false);
+  const [stickerQuery, setStickerQuery] = useState('party');
+
+  const loadStickers = async (query: string) => {
+    setStickerLoading(true);
+    try {
+      const res = await fetch(
+        `https://tenor.googleapis.com/v2/search?q=${encodeURIComponent(query)}&key=${TENOR_API_KEY}&limit=24&searchfilter=sticker&media_filter=tinygif_transparent`
+      );
+      const data = await res.json();
+      const items = data.results
+        ?.map((r: any) => r.media_formats?.tinygif_transparent?.url || r.media_formats?.tinygif?.url)
+        .filter(Boolean) || [];
+      setStickers(items);
+    } catch {
+      setStickers([]);
+    }
+    setStickerLoading(false);
+  };
 
   const searchGifs = async (query: string) => {
-    if (!query.trim()) {
-      // Load trending
-      setGifLoading(true);
-      try {
-        const res = await fetch(`https://tenor.googleapis.com/v2/featured?key=${TENOR_API_KEY}&limit=20&media_filter=tinygif`);
-        const data = await res.json();
-        setGifs(data.results?.map((r: any) => r.media_formats?.tinygif?.url).filter(Boolean) || []);
-      } catch { setGifs([]); }
-      setGifLoading(false);
-      return;
-    }
     setGifLoading(true);
     try {
-      const res = await fetch(`https://tenor.googleapis.com/v2/search?q=${encodeURIComponent(query)}&key=${TENOR_API_KEY}&limit=20&media_filter=tinygif`);
+      const url = query.trim()
+        ? `https://tenor.googleapis.com/v2/search?q=${encodeURIComponent(query)}&key=${TENOR_API_KEY}&limit=24&media_filter=tinygif`
+        : `https://tenor.googleapis.com/v2/featured?key=${TENOR_API_KEY}&limit=24&media_filter=tinygif`;
+      const res = await fetch(url);
       const data = await res.json();
       setGifs(data.results?.map((r: any) => r.media_formats?.tinygif?.url).filter(Boolean) || []);
     } catch { setGifs([]); }
     setGifLoading(false);
   };
 
-  const handleGifTabOpen = () => {
-    setActiveTab('gifs');
-    if (gifs.length === 0) searchGifs('');
-  };
+  useEffect(() => {
+    if (activeTab === 'stickers' && stickers.length === 0) loadStickers(stickerQuery);
+    if (activeTab === 'gifs' && gifs.length === 0) searchGifs('');
+  }, [activeTab]);
 
   const tabs = [
     { key: 'emoji' as const, label: '😀' },
@@ -103,10 +110,12 @@ export default function ChatEmojiStickers({ onSelectEmoji, onSendSticker, onSend
         {tabs.map(tab => (
           <button
             key={tab.key}
-            onClick={() => tab.key === 'gifs' ? handleGifTabOpen() : setActiveTab(tab.key)}
+            onClick={() => setActiveTab(tab.key)}
             className={`flex-1 py-2 text-xs font-medium transition-colors ${activeTab === tab.key ? 'text-primary border-b-2 border-primary' : 'text-muted-foreground'}`}
           >
-            {tab.label}
+            {typeof tab.label === 'string' && tab.label === '😀' ? (
+              <img src={toTwemojiUrl('😀')} alt="emoji" className="w-5 h-5 inline-block" />
+            ) : tab.label}
           </button>
         ))}
       </div>
@@ -116,15 +125,30 @@ export default function ChatEmojiStickers({ onSelectEmoji, onSendSticker, onSend
         <div>
           <div className="flex gap-1 px-2 py-1.5 border-b border-border/20">
             {EMOJI_CATEGORIES.map((cat, i) => (
-              <button key={i} onClick={() => setActiveCat(i)} className={`text-lg px-2 py-0.5 rounded transition-colors ${activeCat === i ? 'bg-primary/15' : 'hover:bg-accent'}`}>
-                {cat.label}
+              <button
+                key={i}
+                onClick={() => setActiveCat(i)}
+                className={`px-2 py-0.5 rounded transition-colors ${activeCat === i ? 'bg-primary/15' : 'hover:bg-accent'}`}
+              >
+                <img src={toTwemojiUrl(cat.label)} alt="cat" className="w-5 h-5" />
               </button>
             ))}
           </div>
           <div className="p-2 grid grid-cols-8 gap-1 max-h-[180px] overflow-y-auto scrollbar-hide">
             {EMOJI_CATEGORIES[activeCat].emojis.map(e => (
-              <button key={e} onClick={() => onSelectEmoji(e)} className="text-xl hover:scale-125 transition-transform p-1 rounded hover:bg-accent">
-                {e}
+              <button
+                key={e}
+                onClick={() => onSelectEmoji(e)}
+                className="hover:scale-125 transition-transform p-1 rounded hover:bg-accent flex items-center justify-center"
+                title={e}
+              >
+                <img
+                  src={toTwemojiUrl(e)}
+                  alt={e}
+                  className="w-6 h-6"
+                  loading="lazy"
+                  onError={(ev) => { (ev.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                />
               </button>
             ))}
           </div>
@@ -134,23 +158,33 @@ export default function ChatEmojiStickers({ onSelectEmoji, onSendSticker, onSend
       {/* Stickers tab */}
       {activeTab === 'stickers' && (
         <div>
-          <div className="flex gap-1 px-2 py-1.5 border-b border-border/20">
-            {STICKER_SETS.map(set => (
-              <button key={set.id} onClick={() => {}} className="text-lg px-2 py-0.5 rounded hover:bg-accent">
-                {set.label}
+          <div className="flex gap-1 px-2 py-1.5 border-b border-border/20 overflow-x-auto scrollbar-hide">
+            {STICKER_QUERIES.map(q => (
+              <button
+                key={q}
+                onClick={() => { setStickerQuery(q); loadStickers(q); }}
+                className={`px-2.5 py-1 rounded-full text-[11px] font-medium whitespace-nowrap transition-colors ${stickerQuery === q ? 'bg-primary/20 text-primary' : 'bg-secondary/40 text-muted-foreground hover:bg-accent'}`}
+              >
+                {q}
               </button>
             ))}
           </div>
-          <div className="p-2 grid grid-cols-4 gap-2 max-h-[180px] overflow-y-auto scrollbar-hide">
-            {STICKER_SETS.flatMap(set => set.stickers).map((sticker, i) => (
-              <button
-                key={i}
-                onClick={() => onSendSticker(sticker)}
-                className="text-2xl p-2 rounded-xl border border-border/30 hover:border-primary/30 hover:bg-primary/5 transition-all text-center"
-              >
-                {sticker}
-              </button>
-            ))}
+          <div className="p-2 grid grid-cols-4 gap-1.5 max-h-[180px] overflow-y-auto scrollbar-hide">
+            {stickerLoading ? (
+              <div className="col-span-4 text-center py-4 text-muted-foreground text-xs">{t('loading', language)}</div>
+            ) : stickers.length === 0 ? (
+              <div className="col-span-4 text-center py-4 text-muted-foreground text-xs">{t('noResults', language)}</div>
+            ) : (
+              stickers.map((url, i) => (
+                <button
+                  key={i}
+                  onClick={() => onSendSticker(url)}
+                  className="rounded-xl p-1.5 hover:bg-primary/10 transition-all flex items-center justify-center aspect-square"
+                >
+                  <img src={url} alt="sticker" className="max-w-full max-h-full object-contain" loading="lazy" />
+                </button>
+              ))
+            )}
           </div>
         </div>
       )}
