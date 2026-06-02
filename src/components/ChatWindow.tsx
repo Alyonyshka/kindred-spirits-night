@@ -399,6 +399,7 @@ export default function ChatWindow({ user: otherUser, onClose }: ChatWindowProps
       receiver_id: otherUser.user_id,
       content: sticker,
       type: 'sticker',
+      media_url: sticker,
     });
     setShowEmoji(false);
   };
@@ -505,6 +506,10 @@ export default function ChatWindow({ user: otherUser, onClose }: ChatWindowProps
                     {isSelected && <Check size={12} />}
                   </button>
                 )}
+                {(() => {
+                  const isTenorText = typeof msg.text === 'string' && /tenor\.(co|com)/i.test(msg.text);
+                  const isStickerLike = msg.type === 'sticker' || (isTenorText && !msg.mediaUrl && msg.type !== 'gif');
+                  return (
                 <div
                   onContextMenu={(e) => { if (!selectionMode) handleMsgContextMenu(e, msg); }}
                   onClick={() => { if (selectionMode) toggleSelected(msg.id); }}
@@ -514,11 +519,15 @@ export default function ChatWindow({ user: otherUser, onClose }: ChatWindowProps
                     const clear = () => { clearTimeout(timer); e.currentTarget.removeEventListener('touchend', clear); };
                     e.currentTarget.addEventListener('touchend', clear);
                   }}
-                  className={`max-w-[75%] px-4 py-2.5 rounded-2xl text-sm cursor-pointer select-none transition-all ${
-                    msg.fromMe
-                      ? 'bg-primary text-primary-foreground rounded-br-md'
-                      : 'glass-panel border border-border rounded-bl-md'
-                  } ${selectionMode && isSelected ? 'ring-2 ring-primary' : ''}`}
+                  className={
+                    isStickerLike
+                      ? `max-w-[75%] text-sm cursor-pointer select-none transition-all bg-transparent p-0 ${selectionMode && isSelected ? 'ring-2 ring-primary rounded-xl' : ''}`
+                      : `max-w-[75%] px-4 py-2.5 rounded-2xl text-sm cursor-pointer select-none transition-all ${
+                          msg.fromMe
+                            ? 'bg-primary text-primary-foreground rounded-br-md'
+                            : 'glass-panel border border-border rounded-bl-md'
+                        } ${selectionMode && isSelected ? 'ring-2 ring-primary' : ''}`
+                  }
                 >
                   {msg.replyTo && (
                     <div className={`mb-1.5 px-2 py-1 rounded-lg border-l-2 text-[11px] ${
@@ -528,19 +537,21 @@ export default function ChatWindow({ user: otherUser, onClose }: ChatWindowProps
                       <span className="opacity-70 line-clamp-1">{msg.replyTo.text}</span>
                     </div>
                   )}
-                  {msg.type === 'photo' && msg.mediaUrl && (
+                  {isStickerLike ? (
+                    (() => {
+                      const url = msg.mediaUrl || msg.text || '';
+                      if (/^https?:\/\//i.test(url)) {
+                        return <img src={url} alt="sticker" className="max-w-[180px] max-h-[180px] object-contain" loading="lazy" />;
+                      }
+                      return <span className="text-5xl block">{msg.text}</span>;
+                    })()
+                  ) : msg.type === 'photo' && msg.mediaUrl ? (
                     <img src={msg.mediaUrl} alt="photo" className="rounded-xl max-w-full mb-1" />
-                  )}
-                  {msg.type === 'video' && msg.mediaUrl && (
+                  ) : msg.type === 'video' && msg.mediaUrl ? (
                     <video src={msg.mediaUrl} controls className="rounded-xl max-w-full mb-1" />
-                  )}
-                  {msg.type === 'gif' && msg.mediaUrl && (
-                    <img src={msg.mediaUrl} alt="gif" className="rounded-xl max-w-full mb-1" />
-                  )}
-                  {msg.type === 'sticker' && (
-                    <span className="text-4xl block mb-1">{msg.text}</span>
-                  )}
-                  {msg.type === 'voice' && (
+                  ) : msg.type === 'gif' ? (
+                    <img src={msg.mediaUrl || msg.text} alt="gif" className="rounded-xl max-w-full mb-1" />
+                  ) : msg.type === 'voice' ? (
                     <div className="flex items-center gap-2 mb-1">
                       <Mic size={14} />
                       {msg.mediaUrl ? (
@@ -551,12 +562,19 @@ export default function ChatWindow({ user: otherUser, onClose }: ChatWindowProps
                         </div>
                       )}
                     </div>
+                  ) : isTenorText ? (
+                    <img src={msg.text} alt="media" className="rounded-xl max-w-[220px]" loading="lazy" />
+                  ) : (
+                    <p className="whitespace-pre-wrap break-words">{msg.text}</p>
                   )}
-                  {msg.type !== 'sticker' && <p>{msg.text}</p>}
-                  <span className={`text-[10px] mt-1 block ${msg.fromMe ? 'text-primary-foreground/60' : 'text-muted-foreground'}`}>
-                    {msg.time} {msg.edited && `· ${t('msgEdited', language)}`} {msg.fromMe && (msg.read ? '✓✓' : '✓')}
-                  </span>
+                  {!isStickerLike && (
+                    <span className={`text-[10px] mt-1 block ${msg.fromMe ? 'text-primary-foreground/60' : 'text-muted-foreground'}`}>
+                      {msg.time} {msg.edited && `· ${t('msgEdited', language)}`} {msg.fromMe && (msg.read ? '✓✓' : '✓')}
+                    </span>
+                  )}
                 </div>
+                  );
+                })()}
                 {selectionMode && msg.fromMe && (
                   <button
                     onClick={() => toggleSelected(msg.id)}
