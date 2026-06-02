@@ -399,6 +399,7 @@ export default function ChatWindow({ user: otherUser, onClose }: ChatWindowProps
       receiver_id: otherUser.user_id,
       content: sticker,
       type: 'sticker',
+      media_url: sticker,
     });
     setShowEmoji(false);
   };
