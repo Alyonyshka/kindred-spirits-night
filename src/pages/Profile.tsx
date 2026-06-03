@@ -8,6 +8,7 @@ import type { Profile as ProfileType } from '@/hooks/useAuth';
 import { useBlocking } from '@/hooks/useBlocking';
 import { motion, AnimatePresence } from 'framer-motion';
 import ChatWindow from '@/components/ChatWindow';
+import ProfileModal from '@/components/ProfileModal';
 import SEO from '@/components/SEO';
 
 interface MeetingWithProfile {
