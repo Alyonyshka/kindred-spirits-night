@@ -399,7 +399,15 @@ export default function Profile() {
         )}
       </AnimatePresence>
 
-      <AnimatePresence>{expandedUser && renderUserCard(expandedUser)}</AnimatePresence>
+      <AnimatePresence>
+        {expandedUser && (
+          <ProfileModal
+            profile={expandedUser}
+            onClose={() => setExpandedUser(null)}
+            onMessage={(p) => handleMessageUser(p)}
+          />
+        )}
+      </AnimatePresence>
       <AnimatePresence>{chatUser && <ChatWindow user={chatUser} onClose={() => setChatUser(null)} />}</AnimatePresence>
     </div>
   );
