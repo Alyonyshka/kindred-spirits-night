@@ -417,6 +417,35 @@ export default function ChatWindow({ user: otherUser, onClose }: ChatWindowProps
     setShowEmoji(false);
   };
 
+  const sendLocation = () => {
+    if (!currentUser) return;
+    if (!('geolocation' in navigator)) {
+      alert('Геолокация не поддерживается этим браузером');
+      return;
+    }
+    toast(t('loading', language));
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const { latitude, longitude } = pos.coords;
+        await supabase.from('messages').insert({
+          sender_id: currentUser.id,
+          receiver_id: otherUser.user_id,
+          content: `${latitude},${longitude}`,
+          type: 'location',
+          media_url: `https://www.google.com/maps?q=${latitude},${longitude}`,
+        });
+      },
+      (err) => {
+        if (err.code === err.PERMISSION_DENIED) {
+          alert('Доступ к геолокации запрещён. Пожалуйста, разрешите доступ к местоположению в настройках браузера и попробуйте снова.');
+        } else {
+          alert('Не удалось определить местоположение. Проверьте, что геолокация включена в настройках устройства.');
+        }
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+    );
+  };
+
   return (
     <motion.div
       className="fixed inset-0 z-[200] flex flex-col"
