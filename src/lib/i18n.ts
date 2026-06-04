@@ -106,7 +106,7 @@ export const translations: Record<string, Record<Language, string>> = {
   meetingAccepted: { ru: 'Встреча принята!', en: 'Meeting accepted!', ua: 'Зустріч прийнята!' },
   meetingDeclined: { ru: 'Встреча отклонена', en: 'Meeting declined', ua: 'Зустріч відхилена' },
   addedToFavorites: { ru: 'Добавлено в избранное!', en: 'Added to favorites!', ua: 'Додано до обраних!' },
-  removedFromFavorites: { ru: 'Удалено из избранного', en: 'Removed from favorites', ua: 'Видалено з обраних' },
+  removedFromFavorites: { ru: 'Удалить из избранного', en: 'Remove from favorites', ua: 'Видалити з обраних' },
   userBlocked: { ru: 'Пользователь заблокирован', en: 'User blocked', ua: 'Користувача заблоковано' },
   userUnblocked: { ru: 'Пользователь разблокирован', en: 'User unblocked', ua: 'Користувача розблоковано' },
   profileSaved: { ru: 'Профиль сохранён!', en: 'Profile saved!', ua: 'Профіль збережено!' },
