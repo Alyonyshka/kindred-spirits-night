@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
-import { X, Send, User, Image, Video, Mic, MicOff, Smile, Paperclip, Reply, Edit2, Sparkles, Beer, Forward, Check } from 'lucide-react';
+import { X, Send, User, Image, Video, Mic, MicOff, Smile, Paperclip, Reply, Edit2, Sparkles, Beer, Forward, Check, MapPin } from 'lucide-react';
+import LocationMessage from './LocationMessage';
 import { useApp } from '@/contexts/AppContext';
 import { t } from '@/lib/i18n';
 import { supabase } from '@/integrations/supabase/client';
