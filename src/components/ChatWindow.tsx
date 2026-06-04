@@ -570,6 +570,15 @@ export default function ChatWindow({ user: otherUser, onClose }: ChatWindowProps
                   )}
                   {isStickerLike ? (
                     (() => {
+                      if (isLocation) {
+                        const [latStr, lngStr] = (msg.text || '').split(',');
+                        const lat = parseFloat(latStr);
+                        const lng = parseFloat(lngStr);
+                        if (isFinite(lat) && isFinite(lng)) {
+                          return <LocationMessage lat={lat} lng={lng} />;
+                        }
+                        return <span className="text-xs text-muted-foreground">📍 {msg.text}</span>;
+                      }
                       const url = msg.mediaUrl || msg.text || '';
                       if (/^https?:\/\//i.test(url)) {
                         return <img src={url} alt="sticker" className="max-w-[180px] max-h-[180px] object-contain" loading="lazy" />;
