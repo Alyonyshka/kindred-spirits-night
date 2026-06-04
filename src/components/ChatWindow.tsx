@@ -707,6 +707,14 @@ export default function ChatWindow({ user: otherUser, onClose }: ChatWindowProps
               <Paperclip size={18} />
             </button>
             <button
+              onClick={sendLocation}
+              className="p-2 rounded-lg text-muted-foreground hover:text-primary transition-colors"
+              title="Поделиться геолокацией"
+              aria-label="Поделиться геолокацией"
+            >
+              <MapPin size={18} />
+            </button>
+            <button
               onClick={() => { setShowEmoji(!showEmoji); setMediaTab('none'); }}
               className="p-2 rounded-lg text-muted-foreground hover:text-primary transition-colors"
             >
