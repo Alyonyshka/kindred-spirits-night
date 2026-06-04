@@ -538,7 +538,8 @@ export default function ChatWindow({ user: otherUser, onClose }: ChatWindowProps
                 )}
                 {(() => {
                   const isTenorText = typeof msg.text === 'string' && /tenor\.(co|com)/i.test(msg.text);
-                  const isStickerLike = msg.type === 'sticker' || (isTenorText && !msg.mediaUrl && msg.type !== 'gif');
+                  const isLocation = msg.type === 'location';
+                  const isStickerLike = msg.type === 'sticker' || isLocation || (isTenorText && !msg.mediaUrl && msg.type !== 'gif');
                   return (
                 <div
                   onContextMenu={(e) => { if (!selectionMode) handleMsgContextMenu(e, msg); }}
