@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
-import { X, Send, User, Image, Video, Mic, MicOff, Smile, Paperclip, Reply, Edit2, Sparkles, Beer, Forward, Check } from 'lucide-react';
+import { X, Send, User, Image, Video, Mic, MicOff, Smile, Paperclip, Reply, Edit2, Sparkles, Beer, Forward, Check, MapPin } from 'lucide-react';
+import LocationMessage from './LocationMessage';
 import { useApp } from '@/contexts/AppContext';
 import { t } from '@/lib/i18n';
 import { supabase } from '@/integrations/supabase/client';
@@ -21,7 +22,7 @@ interface ChatMessage {
   text: string;
   fromMe: boolean;
   time: string;
-  type?: 'text' | 'photo' | 'video' | 'voice' | 'sticker' | 'gif';
+  type?: 'text' | 'photo' | 'video' | 'voice' | 'sticker' | 'gif' | 'location';
   mediaUrl?: string;
   read?: boolean;
   edited?: boolean;
@@ -416,6 +417,35 @@ export default function ChatWindow({ user: otherUser, onClose }: ChatWindowProps
     setShowEmoji(false);
   };
 
+  const sendLocation = () => {
+    if (!currentUser) return;
+    if (!('geolocation' in navigator)) {
+      alert('Геолокация не поддерживается этим браузером');
+      return;
+    }
+    toast(t('loading', language));
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const { latitude, longitude } = pos.coords;
+        await supabase.from('messages').insert({
+          sender_id: currentUser.id,
+          receiver_id: otherUser.user_id,
+          content: `${latitude},${longitude}`,
+          type: 'location',
+          media_url: `https://www.google.com/maps?q=${latitude},${longitude}`,
+        });
+      },
+      (err) => {
+        if (err.code === err.PERMISSION_DENIED) {
+          alert('Доступ к геолокации запрещён. Пожалуйста, разрешите доступ к местоположению в настройках браузера и попробуйте снова.');
+        } else {
+          alert('Не удалось определить местоположение. Проверьте, что геолокация включена в настройках устройства.');
+        }
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+    );
+  };
+
   return (
     <motion.div
       className="fixed inset-0 z-[200] flex flex-col"
@@ -508,7 +538,8 @@ export default function ChatWindow({ user: otherUser, onClose }: ChatWindowProps
                 )}
                 {(() => {
                   const isTenorText = typeof msg.text === 'string' && /tenor\.(co|com)/i.test(msg.text);
-                  const isStickerLike = msg.type === 'sticker' || (isTenorText && !msg.mediaUrl && msg.type !== 'gif');
+                  const isLocation = msg.type === 'location';
+                  const isStickerLike = msg.type === 'sticker' || isLocation || (isTenorText && !msg.mediaUrl && msg.type !== 'gif');
                   return (
                 <div
                   onContextMenu={(e) => { if (!selectionMode) handleMsgContextMenu(e, msg); }}
@@ -539,6 +570,15 @@ export default function ChatWindow({ user: otherUser, onClose }: ChatWindowProps
                   )}
                   {isStickerLike ? (
                     (() => {
+                      if (isLocation) {
+                        const [latStr, lngStr] = (msg.text || '').split(',');
+                        const lat = parseFloat(latStr);
+                        const lng = parseFloat(lngStr);
+                        if (isFinite(lat) && isFinite(lng)) {
+                          return <LocationMessage lat={lat} lng={lng} />;
+                        }
+                        return <span className="text-xs text-muted-foreground">📍 {msg.text}</span>;
+                      }
                       const url = msg.mediaUrl || msg.text || '';
                       if (/^https?:\/\//i.test(url)) {
                         return <img src={url} alt="sticker" className="max-w-[180px] max-h-[180px] object-contain" loading="lazy" />;
@@ -665,6 +705,14 @@ export default function ChatWindow({ user: otherUser, onClose }: ChatWindowProps
               className="p-2 rounded-lg text-muted-foreground hover:text-primary transition-colors"
             >
               <Paperclip size={18} />
+            </button>
+            <button
+              onClick={sendLocation}
+              className="p-2 rounded-lg text-muted-foreground hover:text-primary transition-colors"
+              title="Поделиться геолокацией"
+              aria-label="Поделиться геолокацией"
+            >
+              <MapPin size={18} />
             </button>
             <button
               onClick={() => { setShowEmoji(!showEmoji); setMediaTab('none'); }}
