@@ -59,6 +59,30 @@ export type Database = {
         }
         Relationships: []
       }
+      bug_reports: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          screen_url: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string
+          id?: string
+          screen_url?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          screen_url?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       event_participants: {
         Row: {
           event_id: string
