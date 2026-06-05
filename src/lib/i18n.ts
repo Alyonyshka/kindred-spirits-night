@@ -346,6 +346,7 @@ export const translations: Record<string, Record<Language, string>> = {
   bugReportSend: { ru: 'Отправить', en: 'Send', ua: 'Надіслати' },
   bugReportThanks: { ru: 'Спасибо, мы уже чиним!', en: 'Thanks, we are on it!', ua: 'Дякуємо, ми вже чинимо!' },
   bugReportError: { ru: 'Не удалось отправить. Попробуйте позже.', en: 'Failed to send. Please try again later.', ua: 'Не вдалося надіслати. Спробуйте пізніше.' },
+  sending: { ru: 'Отправка...', en: 'Sending...', ua: 'Надсилання...' },
 };
 
 export const cityKeys = [
