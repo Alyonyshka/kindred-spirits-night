@@ -64,11 +64,18 @@ function AppRoutes() {
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
-      <div className="fixed bottom-16 left-0 right-0 z-40 flex justify-center pointer-events-none">
+      <div className="fixed bottom-16 left-0 right-0 z-40 flex items-center justify-center gap-4 pointer-events-none">
         <a href="/about" className="text-[10px] text-muted-foreground hover:text-primary transition-colors pointer-events-auto">
-          О приложении
+          {t('aboutApp', language)}
         </a>
+        <button
+          onClick={() => setShowBugModal(true)}
+          className="text-[10px] text-muted-foreground hover:text-primary transition-colors pointer-events-auto"
+        >
+          {t('reportBug', language)}
+        </button>
       </div>
+      <BugReportModal open={showBugModal} onClose={() => setShowBugModal(false)} />
       <BottomNav />
     </div>
   );
