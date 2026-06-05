@@ -3,9 +3,11 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { useState } from "react";
 import { AppProvider, useApp } from "@/contexts/AppContext";
 import Header from "@/components/Header";
 import BottomNav from "@/components/BottomNav";
+import BugReportModal from "@/components/BugReportModal";
 import Index from "./pages/Index";
 import Messages from "./pages/Messages";
 import Favorites from "./pages/Favorites";
@@ -21,6 +23,8 @@ const queryClient = new QueryClient();
 
 function AppRoutes() {
   const { user, authLoading, language } = useApp();
+  const [showBugModal, setShowBugModal] = useState(false);
+
 
   if (authLoading) {
     return (
@@ -60,11 +64,18 @@ function AppRoutes() {
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
-      <div className="fixed bottom-16 left-0 right-0 z-40 flex justify-center pointer-events-none">
+      <div className="fixed bottom-16 left-0 right-0 z-40 flex items-center justify-center gap-4 pointer-events-none">
         <a href="/about" className="text-[10px] text-muted-foreground hover:text-primary transition-colors pointer-events-auto">
-          О приложении
+          {t('aboutApp', language)}
         </a>
+        <button
+          onClick={() => setShowBugModal(true)}
+          className="text-[10px] text-muted-foreground hover:text-primary transition-colors pointer-events-auto"
+        >
+          {t('reportBug', language)}
+        </button>
       </div>
+      <BugReportModal open={showBugModal} onClose={() => setShowBugModal(false)} />
       <BottomNav />
     </div>
   );
