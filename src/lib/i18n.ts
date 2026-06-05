@@ -337,6 +337,15 @@ export const translations: Record<string, Record<Language, string>> = {
   generatePlan: { ru: 'План на вечер', en: 'Evening Plan', ua: 'План на вечір' },
   generatingPlan: { ru: 'Генерируем безумный план...', en: 'Generating a crazy plan...', ua: 'Генеруємо шалений план...' },
   tapToSkip: { ru: 'Нажмите, чтобы пропустить анимацию', en: 'Tap to skip animation', ua: 'Натисніть, щоб пропустити анімацію' },
+
+  // Bug report
+  reportBug: { ru: 'Сообщить о баге', en: 'Report a bug', ua: 'Повідомити про баг' },
+  bugReportTitle: { ru: 'Сообщить о баге', en: 'Report a bug', ua: 'Повідомити про баг' },
+  bugReportDescription: { ru: 'Описание проблемы', en: 'Problem description', ua: 'Опис проблеми' },
+  bugReportPlaceholder: { ru: 'Опишите, что пошло не так...', en: 'Describe what went wrong...', ua: 'Опишіть, що пішло не так...' },
+  bugReportSend: { ru: 'Отправить', en: 'Send', ua: 'Надіслати' },
+  bugReportThanks: { ru: 'Спасибо, мы уже чиним!', en: 'Thanks, we are on it!', ua: 'Дякуємо, ми вже чинимо!' },
+  bugReportError: { ru: 'Не удалось отправить. Попробуйте позже.', en: 'Failed to send. Please try again later.', ua: 'Не вдалося надіслати. Спробуйте пізніше.' },
 };
 
 export const cityKeys = [
