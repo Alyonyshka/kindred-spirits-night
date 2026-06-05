@@ -23,6 +23,8 @@ const queryClient = new QueryClient();
 
 function AppRoutes() {
   const { user, authLoading, language } = useApp();
+  const [showBugModal, setShowBugModal] = useState(false);
+
 
   if (authLoading) {
     return (
