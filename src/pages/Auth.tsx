@@ -4,6 +4,7 @@ import { useApp } from '@/contexts/AppContext';
 import { t } from '@/lib/i18n';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { lovable } from '@/integrations/lovable';
 import { motion } from 'framer-motion';
 import { Mail, Lock, User } from 'lucide-react';
 
