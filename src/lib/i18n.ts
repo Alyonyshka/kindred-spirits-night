@@ -299,6 +299,8 @@ export const translations: Record<string, Record<Language, string>> = {
   declined: { ru: 'Отклонено', en: 'Declined', ua: 'Відхилено' },
   confirmMeeting: { ru: 'Подтвердить встречу', en: 'Confirm meeting', ua: 'Підтвердити зустріч' },
   forgotPassword: { ru: 'Забыли пароль?', en: 'Forgot password?', ua: 'Забули пароль?' },
+  signInWithGoogle: { ru: 'Войти через Google', en: 'Sign in with Google', ua: 'Увійти через Google' },
+  orDivider: { ru: 'или', en: 'or', ua: 'або' },
   resetPassword: { ru: 'Сбросить пароль', en: 'Reset password', ua: 'Скинути пароль' },
   newPassword: { ru: 'Новый пароль', en: 'New password', ua: 'Новий пароль' },
   resetEmailSent: { ru: 'Ссылка для сброса пароля отправлена на почту!', en: 'Password reset link sent to your email!', ua: 'Посилання для скидання пароля надіслано на пошту!' },
