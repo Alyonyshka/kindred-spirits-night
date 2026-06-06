@@ -434,14 +434,6 @@ export default function Events() {
           />
         )}
       </AnimatePresence>
-                <button onClick={handleCreate} className="w-full py-3 rounded-2xl bg-primary text-primary-foreground font-semibold text-sm hover:bg-primary/90 transition-colors">
-                  {t('createEvent', language)}
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }
