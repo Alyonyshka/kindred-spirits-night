@@ -138,7 +138,12 @@ export default function Events() {
       drink: newDrink,
       max_participants: Math.max(2, Math.min(99, Number(newMax) || 8)),
       status: 'confirmed',
-    }).select().single();
+      latitude: newLat,
+      longitude: newLng,
+      website: newWebsite.trim(),
+      phone: newPhone.trim(),
+      hours: newHours.trim(),
+    } as any).select().single();
 
     if (error) { toast.error(error.message); return; }
     if (data) {
@@ -146,7 +151,18 @@ export default function Events() {
     }
     setShowCreate(false);
     setNewTitle(''); setNewDesc(''); setNewDate(''); setNewTime(''); setNewLocation(''); setNewDrink('beer'); setNewMax('8');
+    setNewLat(null); setNewLng(null); setNewWebsite(''); setNewPhone(''); setNewHours('');
     toast.success(t('eventCreated', language));
+  };
+
+  const handleLocationSelect = (p: PickedPlace) => {
+    setNewLat(p.lat);
+    setNewLng(p.lng);
+    setNewLocation(p.address);
+    if (p.phone) setNewPhone(p.phone);
+    if (p.website) setNewWebsite(p.website);
+    if (p.hours) setNewHours(p.hours);
+    setShowPicker(false);
   };
 
   const handleShowParticipants = async (eventId: string) => {
