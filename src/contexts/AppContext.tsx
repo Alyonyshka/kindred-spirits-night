@@ -1,7 +1,8 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Language } from '@/lib/i18n';
 import { useAuth, Profile } from '@/hooks/useAuth';
 import type { User } from '@supabase/supabase-js';
+import { Sentry } from '@/lib/sentry';
 
 interface AppState {
   language: Language;
@@ -32,6 +33,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
   });
   const [activeTab, setActiveTab] = useState('search');
   const auth = useAuth();
+
+  useEffect(() => {
+    if (auth.user) {
+      Sentry.setUser({ id: auth.user.id, email: auth.user.email });
+    } else {
+      Sentry.setUser(null);
+    }
+  }, [auth.user]);
 
   const setLanguage = (lang: Language) => {
     setLanguageState(lang);
