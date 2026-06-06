@@ -26,6 +26,11 @@ interface DbEvent {
   max_participants: number;
   status: string;
   created_at: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  website?: string | null;
+  phone?: string | null;
+  hours?: string | null;
   participant_count?: number;
   joined?: boolean;
 }
