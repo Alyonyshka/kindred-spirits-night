@@ -122,13 +122,18 @@ export type Database = {
           date: string | null
           description: string | null
           drink: string | null
+          hours: string | null
           id: string
+          latitude: number | null
           location: string | null
+          longitude: number | null
           max_participants: number | null
+          phone: string | null
           status: Database["public"]["Enums"]["event_status"] | null
           time: string | null
           title: string
           updated_at: string
+          website: string | null
         }
         Insert: {
           created_at?: string
@@ -136,13 +141,18 @@ export type Database = {
           date?: string | null
           description?: string | null
           drink?: string | null
+          hours?: string | null
           id?: string
+          latitude?: number | null
           location?: string | null
+          longitude?: number | null
           max_participants?: number | null
+          phone?: string | null
           status?: Database["public"]["Enums"]["event_status"] | null
           time?: string | null
           title: string
           updated_at?: string
+          website?: string | null
         }
         Update: {
           created_at?: string
@@ -150,13 +160,18 @@ export type Database = {
           date?: string | null
           description?: string | null
           drink?: string | null
+          hours?: string | null
           id?: string
+          latitude?: number | null
           location?: string | null
+          longitude?: number | null
           max_participants?: number | null
+          phone?: string | null
           status?: Database["public"]["Enums"]["event_status"] | null
           time?: string | null
           title?: string
           updated_at?: string
+          website?: string | null
         }
         Relationships: []
       }

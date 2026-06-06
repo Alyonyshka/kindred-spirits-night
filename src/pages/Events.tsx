@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Plus, Search, Calendar, MapPin, Users, Clock, X, User } from 'lucide-react';
+import { Plus, Search, Calendar, MapPin, Users, Clock, X, User, MapPin as MapPinIcon, Globe, Phone } from 'lucide-react';
+import LocationPicker, { type PickedPlace } from '@/components/LocationPicker';
+import EventVenue from '@/components/EventVenue';
 import { useApp } from '@/contexts/AppContext';
 import { t, drinkKeys } from '@/lib/i18n';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -24,6 +26,11 @@ interface DbEvent {
   max_participants: number;
   status: string;
   created_at: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  website?: string | null;
+  phone?: string | null;
+  hours?: string | null;
   participant_count?: number;
   joined?: boolean;
 }
@@ -48,6 +55,12 @@ export default function Events() {
   const [newLocation, setNewLocation] = useState('');
   const [newDrink, setNewDrink] = useState('beer');
   const [newMax, setNewMax] = useState('8');
+  const [newLat, setNewLat] = useState<number | null>(null);
+  const [newLng, setNewLng] = useState<number | null>(null);
+  const [newWebsite, setNewWebsite] = useState('');
+  const [newPhone, setNewPhone] = useState('');
+  const [newHours, setNewHours] = useState('');
+  const [showPicker, setShowPicker] = useState(false);
 
   const fetchEvents = async () => {
     const { data: eventsData } = await supabase
@@ -125,7 +138,12 @@ export default function Events() {
       drink: newDrink,
       max_participants: Math.max(2, Math.min(99, Number(newMax) || 8)),
       status: 'confirmed',
-    }).select().single();
+      latitude: newLat,
+      longitude: newLng,
+      website: newWebsite.trim(),
+      phone: newPhone.trim(),
+      hours: newHours.trim(),
+    } as any).select().single();
 
     if (error) { toast.error(error.message); return; }
     if (data) {
@@ -133,7 +151,18 @@ export default function Events() {
     }
     setShowCreate(false);
     setNewTitle(''); setNewDesc(''); setNewDate(''); setNewTime(''); setNewLocation(''); setNewDrink('beer'); setNewMax('8');
+    setNewLat(null); setNewLng(null); setNewWebsite(''); setNewPhone(''); setNewHours('');
     toast.success(t('eventCreated', language));
+  };
+
+  const handleLocationSelect = (p: PickedPlace) => {
+    setNewLat(p.lat);
+    setNewLng(p.lng);
+    setNewLocation(p.address);
+    if (p.phone) setNewPhone(p.phone);
+    if (p.website) setNewWebsite(p.website);
+    if (p.hours) setNewHours(p.hours);
+    setShowPicker(false);
   };
 
   const handleShowParticipants = async (eventId: string) => {
@@ -259,9 +288,18 @@ export default function Events() {
               <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
                 <span className="flex items-center gap-1"><Calendar size={12} /> {event.date}</span>
                 <span className="flex items-center gap-1"><Clock size={12} /> {event.time}</span>
-                <span className="flex items-center gap-1"><MapPin size={12} /> {event.location}</span>
                 <span className="flex items-center gap-1"><Users size={12} /> {event.participant_count || 0}/{event.max_participants}</span>
               </div>
+              {(event.location || event.latitude != null || event.website || event.phone || event.hours) && (
+                <EventVenue
+                  lat={event.latitude}
+                  lng={event.longitude}
+                  address={event.location}
+                  website={event.website || ''}
+                  phone={event.phone || ''}
+                  hours={event.hours || ''}
+                />
+              )}
               <div className="flex gap-2">
                 <button
                   onClick={() => handleJoin(event.id)}
@@ -339,7 +377,38 @@ export default function Events() {
                   <input type="date" value={newDate} onChange={e => setNewDate(e.target.value)} className={inputClass} />
                   <input type="time" value={newTime} onChange={e => setNewTime(e.target.value)} className={inputClass} />
                 </div>
-                <input type="text" value={newLocation} onChange={e => setNewLocation(e.target.value)} placeholder={t('eventLocation', language)} className={inputClass} />
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={newLocation}
+                    onChange={e => { setNewLocation(e.target.value); setNewLat(null); setNewLng(null); }}
+                    placeholder={t('eventLocation', language)}
+                    className={`${inputClass} pr-11`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPicker(true)}
+                    className={`absolute right-1.5 top-1/2 -translate-y-1/2 p-2 rounded-xl transition-colors ${newLat != null ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-primary hover:bg-primary/10'}`}
+                    title={t('pickLocation', language)}
+                    aria-label={t('pickLocation', language)}
+                  >
+                    <MapPinIcon size={16} />
+                  </button>
+                </div>
+                <div className="relative">
+                  <Globe size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  <input type="text" value={newWebsite} onChange={e => setNewWebsite(e.target.value)} placeholder={t('eventWebsite', language)} className={`${inputClass} pl-9`} />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="relative">
+                    <Phone size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                    <input type="tel" value={newPhone} onChange={e => setNewPhone(e.target.value)} placeholder={t('eventPhone', language)} className={`${inputClass} pl-9`} />
+                  </div>
+                  <div className="relative">
+                    <Clock size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                    <input type="text" value={newHours} onChange={e => setNewHours(e.target.value)} placeholder={t('eventHours', language)} className={`${inputClass} pl-9`} />
+                  </div>
+                </div>
                 <div className="grid grid-cols-2 gap-2">
                   <select value={newDrink} onChange={e => setNewDrink(e.target.value)} className={inputClass}>
                     {drinkKeys.map(d => (<option key={d} value={d}>{t(d, language)}</option>))}
@@ -352,6 +421,17 @@ export default function Events() {
               </div>
             </motion.div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Location Picker */}
+      <AnimatePresence>
+        {showPicker && (
+          <LocationPicker
+            initial={newLat != null && newLng != null ? { lat: newLat, lng: newLng } : null}
+            onSelect={handleLocationSelect}
+            onClose={() => setShowPicker(false)}
+          />
         )}
       </AnimatePresence>
     </div>
