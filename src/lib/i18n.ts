@@ -149,6 +149,17 @@ export const translations: Record<string, Record<Language, string>> = {
   leave: { ru: 'Выйти', en: 'Leave', ua: 'Вийти' },
   searchEvents: { ru: 'Поиск событий...', en: 'Search events...', ua: 'Пошук подій...' },
   noEventsFound: { ru: 'Событий не найдено', en: 'No events found', ua: 'Подій не знайдено' },
+  eventWebsite: { ru: 'Ссылка на сайт/соцсеть', en: 'Website / social link', ua: 'Сайт / соцмережа' },
+  eventPhone: { ru: 'Телефон для брони', en: 'Booking phone', ua: 'Телефон для броні' },
+  eventHours: { ru: 'Время работы', en: 'Opening hours', ua: 'Години роботи' },
+  pickLocation: { ru: 'Выберите место', en: 'Pick location', ua: 'Оберіть місце' },
+  useMyLocation: { ru: 'Моя геопозиция', en: 'Use my location', ua: 'Моя геопозиція' },
+  tapMapToPick: { ru: 'Нажмите на карту, чтобы поставить метку', en: 'Tap the map to drop a pin', ua: 'Натисніть на карту, щоб поставити мітку' },
+  confirmLocation: { ru: 'Подтвердить место', en: 'Confirm location', ua: 'Підтвердити місце' },
+  searchingVenue: { ru: 'Ищем заведение поблизости...', en: 'Searching nearby venue...', ua: 'Шукаємо заклад поруч...' },
+  venueAutoFilled: { ru: 'Найдены данные заведения', en: 'Venue details found', ua: 'Знайдено дані закладу' },
+  geoDenied: { ru: 'Доступ к геолокации запрещён. Включите его в настройках браузера.', en: 'Location access denied. Please enable it in your browser settings.', ua: 'Доступ до геолокації заборонено. Увімкніть його в налаштуваннях браузера.' },
+  geoUnsupported: { ru: 'Геолокация не поддерживается этим браузером', en: 'Geolocation is not supported by this browser', ua: 'Геолокація не підтримується цим браузером' },
 
   // About
   aboutApp: { ru: 'О приложении', en: 'About', ua: 'Про додаток' },
