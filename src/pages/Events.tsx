@@ -55,6 +55,12 @@ export default function Events() {
   const [newLocation, setNewLocation] = useState('');
   const [newDrink, setNewDrink] = useState('beer');
   const [newMax, setNewMax] = useState('8');
+  const [newLat, setNewLat] = useState<number | null>(null);
+  const [newLng, setNewLng] = useState<number | null>(null);
+  const [newWebsite, setNewWebsite] = useState('');
+  const [newPhone, setNewPhone] = useState('');
+  const [newHours, setNewHours] = useState('');
+  const [showPicker, setShowPicker] = useState(false);
 
   const fetchEvents = async () => {
     const { data: eventsData } = await supabase
