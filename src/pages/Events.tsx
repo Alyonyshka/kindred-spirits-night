@@ -288,9 +288,18 @@ export default function Events() {
               <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
                 <span className="flex items-center gap-1"><Calendar size={12} /> {event.date}</span>
                 <span className="flex items-center gap-1"><Clock size={12} /> {event.time}</span>
-                <span className="flex items-center gap-1"><MapPin size={12} /> {event.location}</span>
                 <span className="flex items-center gap-1"><Users size={12} /> {event.participant_count || 0}/{event.max_participants}</span>
               </div>
+              {(event.location || event.latitude != null || event.website || event.phone || event.hours) && (
+                <EventVenue
+                  lat={event.latitude}
+                  lng={event.longitude}
+                  address={event.location}
+                  website={event.website || ''}
+                  phone={event.phone || ''}
+                  hours={event.hours || ''}
+                />
+              )}
               <div className="flex gap-2">
                 <button
                   onClick={() => handleJoin(event.id)}
