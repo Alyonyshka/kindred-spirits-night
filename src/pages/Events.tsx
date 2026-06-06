@@ -377,13 +377,63 @@ export default function Events() {
                   <input type="date" value={newDate} onChange={e => setNewDate(e.target.value)} className={inputClass} />
                   <input type="time" value={newTime} onChange={e => setNewTime(e.target.value)} className={inputClass} />
                 </div>
-                <input type="text" value={newLocation} onChange={e => setNewLocation(e.target.value)} placeholder={t('eventLocation', language)} className={inputClass} />
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={newLocation}
+                    onChange={e => { setNewLocation(e.target.value); setNewLat(null); setNewLng(null); }}
+                    placeholder={t('eventLocation', language)}
+                    className={`${inputClass} pr-11`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPicker(true)}
+                    className={`absolute right-1.5 top-1/2 -translate-y-1/2 p-2 rounded-xl transition-colors ${newLat != null ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-primary hover:bg-primary/10'}`}
+                    title={t('pickLocation', language)}
+                    aria-label={t('pickLocation', language)}
+                  >
+                    <MapPinIcon size={16} />
+                  </button>
+                </div>
+                <div className="relative">
+                  <Globe size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  <input type="text" value={newWebsite} onChange={e => setNewWebsite(e.target.value)} placeholder={t('eventWebsite', language)} className={`${inputClass} pl-9`} />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="relative">
+                    <Phone size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                    <input type="tel" value={newPhone} onChange={e => setNewPhone(e.target.value)} placeholder={t('eventPhone', language)} className={`${inputClass} pl-9`} />
+                  </div>
+                  <div className="relative">
+                    <Clock size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                    <input type="text" value={newHours} onChange={e => setNewHours(e.target.value)} placeholder={t('eventHours', language)} className={`${inputClass} pl-9`} />
+                  </div>
+                </div>
                 <div className="grid grid-cols-2 gap-2">
                   <select value={newDrink} onChange={e => setNewDrink(e.target.value)} className={inputClass}>
                     {drinkKeys.map(d => (<option key={d} value={d}>{t(d, language)}</option>))}
                   </select>
                   <input type="number" value={newMax} onChange={e => setNewMax(e.target.value)} min={2} max={99} placeholder={t('maxParticipants', language)} className={inputClass} />
                 </div>
+                <button onClick={handleCreate} className="w-full py-3 rounded-2xl bg-primary text-primary-foreground font-semibold text-sm hover:bg-primary/90 transition-colors">
+                  {t('createEvent', language)}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Location Picker */}
+      <AnimatePresence>
+        {showPicker && (
+          <LocationPicker
+            initial={newLat != null && newLng != null ? { lat: newLat, lng: newLng } : null}
+            onSelect={handleLocationSelect}
+            onClose={() => setShowPicker(false)}
+          />
+        )}
+      </AnimatePresence>
                 <button onClick={handleCreate} className="w-full py-3 rounded-2xl bg-primary text-primary-foreground font-semibold text-sm hover:bg-primary/90 transition-colors">
                   {t('createEvent', language)}
                 </button>
