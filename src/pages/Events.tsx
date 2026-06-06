@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Plus, Search, Calendar, MapPin, Users, Clock, X, User } from 'lucide-react';
+import { Plus, Search, Calendar, MapPin, Users, Clock, X, User, MapPin as MapPinIcon, Globe, Phone } from 'lucide-react';
+import LocationPicker, { type PickedPlace } from '@/components/LocationPicker';
+import EventVenue from '@/components/EventVenue';
 import { useApp } from '@/contexts/AppContext';
 import { t, drinkKeys } from '@/lib/i18n';
 import { motion, AnimatePresence } from 'framer-motion';
