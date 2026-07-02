@@ -2,7 +2,8 @@ import * as Sentry from "@sentry/react";
 
 // Sentry DSN — публичный ключ, безопасно хранить во frontend-коде.
 // Получить: https://sentry.io → Settings → Projects → Client Keys (DSN)
-const SENTRY_DSN = "";
+const SENTRY_DSN =
+  "https://403d42e1ad65541df04ee565929228b9@o4511517651435520.ingest.de.sentry.io/4511518253973584";
 
 export function initSentry() {
   if (!SENTRY_DSN) {
