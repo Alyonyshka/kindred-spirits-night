@@ -23,6 +23,7 @@ export default function ProfileModal({ profile: p, onClose, onMessage }: Profile
   const [hoverRating, setHoverRating] = useState(0);
   const [myRating, setMyRating] = useState(0);
   const [canRate, setCanRate] = useState(false);
+  const [showReport, setShowReport] = useState(false);
 
   const isFav = isFavorite(p.user_id);
   const fullStars = Math.round(p.rating || 0);
