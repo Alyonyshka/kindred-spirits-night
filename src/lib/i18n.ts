@@ -96,6 +96,16 @@ export const translations: Record<string, Record<Language, string>> = {
   proposeMeeting: { ru: 'Предложить встречу', en: 'Propose meeting', ua: 'Запропонувати зустріч' },
   blockUser: { ru: 'Заблокировать', en: 'Block', ua: 'Заблокувати' },
   unblockUser: { ru: 'Разблокировать', en: 'Unblock', ua: 'Розблокувати' },
+  reportUser: { ru: 'Пожаловаться', en: 'Report', ua: 'Поскаржитися' },
+  reportTitle: { ru: 'Подать жалобу на пользователя', en: 'Report user', ua: 'Подати скаргу на користувача' },
+  reportReasonInappropriate: { ru: 'Неадекватное поведение', en: 'Inappropriate behavior', ua: 'Неадекватна поведінка' },
+  reportReasonFake: { ru: 'Фейковый профиль / Чужие фото', en: 'Fake profile / Stolen photos', ua: 'Фейковий профіль / Чужі фото' },
+  reportReasonSpam: { ru: 'Спам или реклама', en: 'Spam or advertising', ua: 'Спам або реклама' },
+  reportReasonOther: { ru: 'Другое', en: 'Other', ua: 'Інше' },
+  reportDetailsPlaceholder: { ru: 'Опишите проблему...', en: 'Describe the issue...', ua: 'Опишіть проблему...' },
+  reportSend: { ru: 'Отправить', en: 'Send', ua: 'Надіслати' },
+  reportSuccess: { ru: 'Жалоба отправлена модераторам. Спасибо!', en: 'Report sent to moderators. Thank you!', ua: 'Скаргу надіслано модераторам. Дякуємо!' },
+  reportError: { ru: 'Не удалось отправить жалобу', en: 'Failed to send report', ua: 'Не вдалося надіслати скаргу' },
 
   // Events
   createEvent: { ru: 'Создать событие', en: 'Create event', ua: 'Створити подію' },

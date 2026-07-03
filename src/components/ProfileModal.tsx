@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Heart, MessageCircle, Handshake, Ban, Star, User } from 'lucide-react';
+import { Heart, MessageCircle, Handshake, Ban, Star, User, Flag } from 'lucide-react';
+import ReportUserModal from '@/components/ReportUserModal';
 import { useApp } from '@/contexts/AppContext';
 import { t } from '@/lib/i18n';
 import type { Profile } from '@/hooks/useAuth';
@@ -22,6 +23,7 @@ export default function ProfileModal({ profile: p, onClose, onMessage }: Profile
   const [hoverRating, setHoverRating] = useState(0);
   const [myRating, setMyRating] = useState(0);
   const [canRate, setCanRate] = useState(false);
+  const [showReport, setShowReport] = useState(false);
 
   const isFav = isFavorite(p.user_id);
   const fullStars = Math.round(p.rating || 0);
@@ -194,8 +196,19 @@ export default function ProfileModal({ profile: p, onClose, onMessage }: Profile
             <Ban size={14} />
             {t(isBlockedByMe(p.user_id) ? 'unblockUser' : 'blockUser', language)}
           </button>
+          <button onClick={() => setShowReport(true)}
+            className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-medium border border-destructive/30 text-muted-foreground hover:text-destructive hover:bg-destructive/5 transition-all col-span-2">
+            <Flag size={14} />
+            {t('reportUser', language)}
+          </button>
         </div>
       </motion.div>
+      <ReportUserModal
+        open={showReport}
+        reportedUserId={p.user_id}
+        reportedUserName={p.name}
+        onClose={() => setShowReport(false)}
+      />
     </motion.div>
   );
 }
