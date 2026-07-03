@@ -43,7 +43,7 @@ const toTwemojiUrl = (emoji: string): string => {
   return `https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/${codepoints.join('-')}.png`;
 };
 
-const TENOR_API_KEY = 'AIzaSyAyimkuYQYF_FXVALexPuGQctUWRURdCYQ';
+const TENOR_PROXY_URL = `https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/tenor-proxy`;
 const STICKER_QUERIES = ['party', 'cheers', 'cocktail', 'bar', 'beer', 'drunk', 'friends', 'wine', 'dance', 'celebrate'];
 
 export default function ChatEmojiStickers({ onSelectEmoji, onSendSticker, onSendGif }: Props) {
