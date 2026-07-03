@@ -43,7 +43,7 @@ const toTwemojiUrl = (emoji: string): string => {
   return `https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/${codepoints.join('-')}.png`;
 };
 
-const TENOR_API_KEY = 'AIzaSyAyimkuYQYF_FXVALexPuGQctUWRURdCYQ';
+const TENOR_PROXY_URL = `https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/tenor-proxy`;
 const STICKER_QUERIES = ['party', 'cheers', 'cocktail', 'bar', 'beer', 'drunk', 'friends', 'wine', 'dance', 'celebrate'];
 
 export default function ChatEmojiStickers({ onSelectEmoji, onSendSticker, onSendGif }: Props) {
@@ -61,7 +61,7 @@ export default function ChatEmojiStickers({ onSelectEmoji, onSendSticker, onSend
     setStickerLoading(true);
     try {
       const res = await fetch(
-        `https://tenor.googleapis.com/v2/search?q=${encodeURIComponent(query)}&key=${TENOR_API_KEY}&limit=24&searchfilter=sticker&media_filter=tinygif_transparent`
+        `${TENOR_PROXY_URL}?endpoint=search&q=${encodeURIComponent(query)}&limit=24&searchfilter=sticker&media_filter=tinygif_transparent`
       );
       const data = await res.json();
       const items = data.results
@@ -78,8 +78,8 @@ export default function ChatEmojiStickers({ onSelectEmoji, onSendSticker, onSend
     setGifLoading(true);
     try {
       const url = query.trim()
-        ? `https://tenor.googleapis.com/v2/search?q=${encodeURIComponent(query)}&key=${TENOR_API_KEY}&limit=24&media_filter=tinygif`
-        : `https://tenor.googleapis.com/v2/featured?key=${TENOR_API_KEY}&limit=24&media_filter=tinygif`;
+        ? `${TENOR_PROXY_URL}?endpoint=search&q=${encodeURIComponent(query)}&limit=24&media_filter=tinygif`
+        : `${TENOR_PROXY_URL}?endpoint=featured&limit=24&media_filter=tinygif`;
       const res = await fetch(url);
       const data = await res.json();
       setGifs(data.results?.map((r: any) => r.media_formats?.tinygif?.url).filter(Boolean) || []);
