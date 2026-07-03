@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Heart, MessageCircle, Handshake, Ban, Star, User } from 'lucide-react';
+import { Heart, MessageCircle, Handshake, Ban, Star, User, Flag } from 'lucide-react';
+import ReportUserModal from '@/components/ReportUserModal';
 import { useApp } from '@/contexts/AppContext';
 import { t } from '@/lib/i18n';
 import type { Profile } from '@/hooks/useAuth';
