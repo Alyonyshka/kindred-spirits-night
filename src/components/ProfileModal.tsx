@@ -196,8 +196,19 @@ export default function ProfileModal({ profile: p, onClose, onMessage }: Profile
             <Ban size={14} />
             {t(isBlockedByMe(p.user_id) ? 'unblockUser' : 'blockUser', language)}
           </button>
+          <button onClick={() => setShowReport(true)}
+            className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-medium border border-destructive/30 text-muted-foreground hover:text-destructive hover:bg-destructive/5 transition-all col-span-2">
+            <Flag size={14} />
+            {t('reportUser', language)}
+          </button>
         </div>
       </motion.div>
+      <ReportUserModal
+        open={showReport}
+        reportedUserId={p.user_id}
+        reportedUserName={p.name}
+        onClose={() => setShowReport(false)}
+      />
     </motion.div>
   );
 }
