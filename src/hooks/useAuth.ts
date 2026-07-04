@@ -58,7 +58,14 @@ export function useAuth() {
       .select('*')
       .eq('user_id', userId)
       .single();
-    if (data) setProfile(data as Profile);
+    if (data) {
+      if ((data as any).status === 'banned') {
+        await supabase.auth.signOut();
+        setUser(null); setSession(null); setProfile(null);
+        return;
+      }
+      setProfile(data as Profile);
+    }
   };
 
   const signUp = async (email: string, password: string, name: string) => {
