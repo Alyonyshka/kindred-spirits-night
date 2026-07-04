@@ -21,7 +21,7 @@ export default function Index() {
   useEffect(() => {
     const fetchProfiles = async () => {
       setLoading(true);
-      const { data } = await supabase.from('profiles').select('*');
+      const { data } = await supabase.from('profiles').select('*').neq('status', 'banned');
       if (data) {
         setProfiles(data.filter(p => p.user_id !== user?.id) as unknown as Profile[]);
       }
