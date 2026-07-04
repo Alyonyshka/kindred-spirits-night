@@ -16,6 +16,7 @@ import Profile from "./pages/Profile";
 import About from "./pages/About";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
+import AdminPanel from "./pages/AdminPanel";
 import NotFound from "./pages/NotFound";
 import { t } from "@/lib/i18n";
 
@@ -60,6 +61,7 @@ function AppRoutes() {
           <Route path="/profile" element={<Profile />} />
           <Route path="/about" element={<About />} />
           <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/admin-panel" element={<AdminPanel />} />
           <Route path="/auth" element={<Navigate to="/" replace />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
