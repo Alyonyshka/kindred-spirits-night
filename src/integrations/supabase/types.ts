@@ -294,6 +294,7 @@ export type Database = {
           online: boolean | null
           rating: number | null
           rating_count: number | null
+          status: string
           updated_at: string
           user_id: string
           vibe: string | null
@@ -312,6 +313,7 @@ export type Database = {
           online?: boolean | null
           rating?: number | null
           rating_count?: number | null
+          status?: string
           updated_at?: string
           user_id: string
           vibe?: string | null
@@ -330,6 +332,7 @@ export type Database = {
           online?: boolean | null
           rating?: number | null
           rating_count?: number | null
+          status?: string
           updated_at?: string
           user_id?: string
           vibe?: string | null
@@ -390,16 +393,45 @@ export type Database = {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      admin_ban_user: { Args: { _target_user: string }; Returns: undefined }
       confirm_brudershaft: {
         Args: { _code: string; _meeting_id: string }
         Returns: boolean
       }
       get_my_profile_id: { Args: never; Returns: string }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       is_blocked: { Args: { _user1: string; _user2: string }; Returns: boolean }
       is_meeting_participant: {
         Args: { _meeting_id: string }
@@ -407,6 +439,7 @@ export type Database = {
       }
     }
     Enums: {
+      app_role: "admin" | "moderator" | "user"
       event_status: "pending" | "confirmed" | "cancelled"
       meeting_status: "pending" | "confirmed" | "declined"
     }
@@ -536,6 +569,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      app_role: ["admin", "moderator", "user"],
       event_status: ["pending", "confirmed", "cancelled"],
       meeting_status: ["pending", "confirmed", "declined"],
     },
