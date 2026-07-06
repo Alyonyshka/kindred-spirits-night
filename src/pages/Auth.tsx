@@ -132,10 +132,31 @@ export default function Auth() {
               />
             </div>
           )}
+          {isSignUp && !isForgot && (
+            <label className="flex items-start gap-2 text-xs text-muted-foreground cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={acceptedTerms}
+                onChange={(e) => setAcceptedTerms(e.target.checked)}
+                className="mt-0.5 h-4 w-4 accent-primary shrink-0 cursor-pointer"
+              />
+              <span className="leading-snug">
+                {t('termsAgreementPrefix', language)}{' '}
+                <a href="/terms" target="_blank" rel="noreferrer" className="text-primary hover:underline font-medium">
+                  {t('termsAgreementLink', language)}
+                </a>{' '}
+                {t('termsAgreementAnd', language)}{' '}
+                <a href="/privacy" target="_blank" rel="noreferrer" className="text-primary hover:underline font-medium">
+                  {t('termsAgreementPrivacy', language)}
+                </a>
+                .
+              </span>
+            </label>
+          )}
           <button
             type="submit"
-            disabled={loading}
-            className="w-full py-3 rounded-2xl bg-primary text-primary-foreground font-semibold text-sm hover:bg-primary/90 transition-colors disabled:opacity-50"
+            disabled={loading || (isSignUp && !isForgot && !acceptedTerms)}
+            className="w-full py-3 rounded-2xl bg-primary text-primary-foreground font-semibold text-sm hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? '...' : t(isForgot ? 'resetPassword' : isSignUp ? 'signUp' : 'signIn', language)}
           </button>
