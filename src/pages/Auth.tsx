@@ -16,6 +16,7 @@ export default function Auth() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const inputClass = "w-full px-4 py-3 pl-11 rounded-2xl bg-secondary/30 border border-border text-sm placeholder:text-muted-foreground focus:outline-none focus:amber-border-glow transition-all";
@@ -33,6 +34,10 @@ export default function Auth() {
         return;
       }
       if (isSignUp) {
+        if (!acceptedTerms) {
+          toast.error(t('mustAcceptTerms', language));
+          return;
+        }
         const { error } = await signUp(email, password, name);
         if (error) toast.error(error.message);
         else toast.success(t('checkEmail', language));
