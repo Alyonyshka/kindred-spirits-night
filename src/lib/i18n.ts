@@ -379,6 +379,32 @@ export const cityKeys = [
   'cherkasy', 'chernihiv', 'chernivtsi', 'simferopol'
 ] as const;
 
+translations.termsAgreementPrefix = {
+  ru: 'Мне исполнилось 18 лет, я принимаю',
+  en: 'I am at least 18 years old and I accept the',
+  ua: 'Мені виповнилося 18 років, я приймаю',
+};
+translations.termsAgreementLink = {
+  ru: 'Условия использования',
+  en: 'Terms of Use',
+  ua: 'Умови використання',
+};
+translations.termsAgreementAnd = {
+  ru: 'и согласен(на) с',
+  en: 'and agree to the',
+  ua: 'і згоден(на) з',
+};
+translations.termsAgreementPrivacy = {
+  ru: 'Политикой конфиденциальности',
+  en: 'Privacy Policy',
+  ua: 'Політикою конфіденційності',
+};
+translations.mustAcceptTerms = {
+  ru: 'Необходимо принять условия',
+  en: 'You must accept the terms',
+  ua: 'Необхідно прийняти умови',
+};
+
 export const interestKeys = [
   'activeSport', 'creativity', 'handicraft', 'cooking', 'gardening', 'travel',
   'intellectual', 'volunteering', 'collecting', 'technical', 'cultural', 'social', 'hookah'

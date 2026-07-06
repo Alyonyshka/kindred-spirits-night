@@ -17,6 +17,8 @@ import About from "./pages/About";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
 import AdminPanel from "./pages/AdminPanel";
+import Terms from "./pages/Terms";
+import Privacy from "./pages/Privacy";
 import NotFound from "./pages/NotFound";
 import { t } from "@/lib/i18n";
 
@@ -42,6 +44,8 @@ function AppRoutes() {
         <main className="max-w-5xl mx-auto px-4 py-4 pb-24">
           <Routes>
             <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/terms" element={<Terms />} />
+            <Route path="/privacy" element={<Privacy />} />
             <Route path="*" element={<Auth />} />
           </Routes>
         </main>
@@ -62,6 +66,8 @@ function AppRoutes() {
           <Route path="/about" element={<About />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/admin-panel" element={<AdminPanel />} />
+          <Route path="/terms" element={<Terms />} />
+          <Route path="/privacy" element={<Privacy />} />
           <Route path="/auth" element={<Navigate to="/" replace />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
