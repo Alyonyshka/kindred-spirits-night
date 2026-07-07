@@ -43,54 +43,103 @@ const toTwemojiUrl = (emoji: string): string => {
   return `https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/${codepoints.join('-')}.png`;
 };
 
-const TENOR_PROXY_URL = `https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/tenor-proxy`;
-const STICKER_QUERIES = ['party', 'cheers', 'cocktail', 'bar', 'beer', 'drunk', 'friends', 'wine', 'dance', 'celebrate'];
+// Curated static GIF/sticker library (Giphy public CDN URLs — no API key needed to display)
+const STICKER_QUERIES = ['party', 'cheers', 'cocktail', 'beer', 'wine', 'dance', 'celebrate'] as const;
+type StickerQuery = typeof STICKER_QUERIES[number];
+
+const STICKER_LIBRARY: Record<StickerQuery, string[]> = {
+  party: [
+    'https://media.giphy.com/media/g9582DNuQppxC/giphy.gif',
+    'https://media.giphy.com/media/l0MYt5jPR6QX5pnqM/giphy.gif',
+    'https://media.giphy.com/media/xUOxfhtTZTU21NIYZ2/giphy.gif',
+    'https://media.giphy.com/media/26tn33aiTi1jkl6H6/giphy.gif',
+    'https://media.giphy.com/media/l0HlvtIPzPdt2usKs/giphy.gif',
+    'https://media.giphy.com/media/xT0GqH01ZbXikrxDlS/giphy.gif',
+    'https://media.giphy.com/media/3o6ozsIxg5legZigmc/giphy.gif',
+    'https://media.giphy.com/media/JltOMwYmi0VrO/giphy.gif',
+  ],
+  cheers: [
+    'https://media.giphy.com/media/xUOxfguTfXbNxjSAOc/giphy.gif',
+    'https://media.giphy.com/media/l0MYymPUZKvzYCg2Q/giphy.gif',
+    'https://media.giphy.com/media/JQNyk4xEfvzUY/giphy.gif',
+    'https://media.giphy.com/media/3o7btNa0RUYa5E7iiQ/giphy.gif',
+    'https://media.giphy.com/media/l0Iyl55kTeh71nTXy/giphy.gif',
+    'https://media.giphy.com/media/26tPplGWjN0xLybiU/giphy.gif',
+    'https://media.giphy.com/media/l2JIe6bKmZbtahYWA/giphy.gif',
+    'https://media.giphy.com/media/xTiTndDHV3GeIy6aNa/giphy.gif',
+  ],
+  cocktail: [
+    'https://media.giphy.com/media/xT9DPPHwWuHLTKUNy8/giphy.gif',
+    'https://media.giphy.com/media/l0MYD4mSCXlvHZ2XC/giphy.gif',
+    'https://media.giphy.com/media/26BRCVezhU1t5eENy/giphy.gif',
+    'https://media.giphy.com/media/xUPGcJi5PMXsRuBiCk/giphy.gif',
+    'https://media.giphy.com/media/l2JhL7jMhqQtQ0uWY/giphy.gif',
+    'https://media.giphy.com/media/xT0xeuOy2Fcl9vDGiA/giphy.gif',
+  ],
+  beer: [
+    'https://media.giphy.com/media/l0HlSNOxJB0MTGlXO/giphy.gif',
+    'https://media.giphy.com/media/xT9DPIlGnuHpr2yObC/giphy.gif',
+    'https://media.giphy.com/media/l0Ex6kAKKcjmpJoTC/giphy.gif',
+    'https://media.giphy.com/media/26xBIygOcC3bAFykw/giphy.gif',
+    'https://media.giphy.com/media/3o6UB6UOTPr9tDrjO0/giphy.gif',
+    'https://media.giphy.com/media/xT5LMKt8LqlHNlWobK/giphy.gif',
+  ],
+  wine: [
+    'https://media.giphy.com/media/xUPGcguWZHRC2HyBRe/giphy.gif',
+    'https://media.giphy.com/media/l2JhBUzgvUKQhrp32/giphy.gif',
+    'https://media.giphy.com/media/l0MYyv3g7wCxWJDe8/giphy.gif',
+    'https://media.giphy.com/media/3o7bu3XilJ5BOiSGic/giphy.gif',
+    'https://media.giphy.com/media/xT9IgFLBcm3Wi6l6iA/giphy.gif',
+    'https://media.giphy.com/media/26AHONQ79FdWZhAI0/giphy.gif',
+  ],
+  dance: [
+    'https://media.giphy.com/media/l0HlKrB02QY0f1mbm/giphy.gif',
+    'https://media.giphy.com/media/xThta7hbXNRRZuXBOw/giphy.gif',
+    'https://media.giphy.com/media/26tPplGWjN0xLybiU/giphy.gif',
+    'https://media.giphy.com/media/3o6Zt481isNVuQI1l6/giphy.gif',
+    'https://media.giphy.com/media/l0HlBO7eyXzSZkJri/giphy.gif',
+    'https://media.giphy.com/media/xThuWbwrw5Q6VfxRRK/giphy.gif',
+    'https://media.giphy.com/media/l2JhOVXFXNbKzzC0M/giphy.gif',
+    'https://media.giphy.com/media/l0Ex6kAKKcjmpJoTC/giphy.gif',
+  ],
+  celebrate: [
+    'https://media.giphy.com/media/3o6ozC18XKvOOEBBK0/giphy.gif',
+    'https://media.giphy.com/media/l0MYt5jPR6QX5pnqM/giphy.gif',
+    'https://media.giphy.com/media/26u4b45b8KlgAB7iM/giphy.gif',
+    'https://media.giphy.com/media/l3q2K5jinAlChoCLS/giphy.gif',
+    'https://media.giphy.com/media/xT0xezQGU5xCDJuCPe/giphy.gif',
+    'https://media.giphy.com/media/xUOxeZeYIzu0hkfxUY/giphy.gif',
+    'https://media.giphy.com/media/l0HlKghz8IvrQ8TYQ/giphy.gif',
+    'https://media.giphy.com/media/3o6ZsWQ8Vjjm1PMSUE/giphy.gif',
+  ],
+};
+
+const ALL_GIFS: string[] = Array.from(new Set(Object.values(STICKER_LIBRARY).flat()));
 
 export default function ChatEmojiStickers({ onSelectEmoji, onSendSticker, onSendGif }: Props) {
   const { language } = useApp();
   const [activeTab, setActiveTab] = useState<'emoji' | 'stickers' | 'gifs'>('emoji');
   const [activeCat, setActiveCat] = useState(0);
   const [gifSearch, setGifSearch] = useState('');
-  const [gifs, setGifs] = useState<string[]>([]);
-  const [gifLoading, setGifLoading] = useState(false);
-  const [stickers, setStickers] = useState<string[]>([]);
-  const [stickerLoading, setStickerLoading] = useState(false);
-  const [stickerQuery, setStickerQuery] = useState('party');
+  const [gifs, setGifs] = useState<string[]>(ALL_GIFS);
+  const [gifLoading] = useState(false);
+  const [stickers, setStickers] = useState<string[]>(STICKER_LIBRARY.party);
+  const [stickerLoading] = useState(false);
+  const [stickerQuery, setStickerQuery] = useState<StickerQuery>('party');
 
-  const loadStickers = async (query: string) => {
-    setStickerLoading(true);
-    try {
-      const res = await fetch(
-        `${TENOR_PROXY_URL}?endpoint=search&q=${encodeURIComponent(query)}&limit=24&searchfilter=sticker&media_filter=tinygif_transparent`
-      );
-      const data = await res.json();
-      const items = data.results
-        ?.map((r: any) => r.media_formats?.tinygif_transparent?.url || r.media_formats?.tinygif?.url)
-        .filter(Boolean) || [];
-      setStickers(items);
-    } catch {
-      setStickers([]);
-    }
-    setStickerLoading(false);
+  const loadStickers = (query: StickerQuery) => {
+    setStickerQuery(query);
+    setStickers(STICKER_LIBRARY[query] || []);
   };
 
-  const searchGifs = async (query: string) => {
-    setGifLoading(true);
-    try {
-      const url = query.trim()
-        ? `${TENOR_PROXY_URL}?endpoint=search&q=${encodeURIComponent(query)}&limit=24&media_filter=tinygif`
-        : `${TENOR_PROXY_URL}?endpoint=featured&limit=24&media_filter=tinygif`;
-      const res = await fetch(url);
-      const data = await res.json();
-      setGifs(data.results?.map((r: any) => r.media_formats?.tinygif?.url).filter(Boolean) || []);
-    } catch { setGifs([]); }
-    setGifLoading(false);
+  const searchGifs = (query: string) => {
+    setGifSearch(query);
+    const q = query.trim().toLowerCase();
+    if (!q) { setGifs(ALL_GIFS); return; }
+    const matchedKey = (STICKER_QUERIES as readonly string[]).find(k => k.includes(q) || q.includes(k)) as StickerQuery | undefined;
+    setGifs(matchedKey ? STICKER_LIBRARY[matchedKey] : ALL_GIFS);
   };
 
-  useEffect(() => {
-    if (activeTab === 'stickers' && stickers.length === 0) loadStickers(stickerQuery);
-    if (activeTab === 'gifs' && gifs.length === 0) searchGifs('');
-  }, [activeTab]);
 
   const tabs = [
     { key: 'emoji' as const, label: '😀' },
