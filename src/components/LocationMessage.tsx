@@ -69,12 +69,15 @@ export default function LocationMessage({ lat, lng }: LocationMessageProps) {
   };
 
   return (
-    <div className="w-[240px] rounded-xl overflow-hidden border border-border bg-card/60">
+    <div
+      className="w-[240px] rounded-xl overflow-hidden border border-border bg-card/60 relative"
+      style={{ isolation: 'isolate', zIndex: 0 }}
+    >
       <div
         ref={mapRef}
         onClick={openExternalMap}
-        className="w-full h-[140px] cursor-pointer"
-        style={{ background: 'hsl(var(--secondary))' }}
+        className="w-full h-[140px] cursor-pointer relative"
+        style={{ background: 'hsl(var(--secondary))', zIndex: 0 }}
       />
       <button
         onClick={openExternalMap}
