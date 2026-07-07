@@ -2,3 +2,6 @@ project_id = "mzkyctcnbjcoyjwtctzh"
 
 [functions.generate-adventure]
 verify_jwt = false
+
+[functions.tenor-proxy]
+verify_jwt = false
