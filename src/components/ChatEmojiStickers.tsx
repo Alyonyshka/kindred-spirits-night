@@ -33,7 +33,6 @@ const EMOJI_CATEGORIES = [
   },
 ];
 
-// Twemoji CDN — renders emoji as consistent images across all devices
 const toTwemojiUrl = (emoji: string): string => {
   const codepoints: string[] = [];
   for (const ch of emoji) {
@@ -43,103 +42,66 @@ const toTwemojiUrl = (emoji: string): string => {
   return `https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/${codepoints.join('-')}.png`;
 };
 
-// Curated static GIF/sticker library (Giphy public CDN URLs — no API key needed to display)
-const STICKER_QUERIES = ['party', 'cheers', 'cocktail', 'beer', 'wine', 'dance', 'celebrate'] as const;
-type StickerQuery = typeof STICKER_QUERIES[number];
+const gif = (id: string) => `https://media.giphy.com/media/${id}/giphy.gif`;
 
-const STICKER_LIBRARY: Record<StickerQuery, string[]> = {
-  party: [
-    'https://media.giphy.com/media/g9582DNuQppxC/giphy.gif',
-    'https://media.giphy.com/media/l0MYt5jPR6QX5pnqM/giphy.gif',
-    'https://media.giphy.com/media/xUOxfhtTZTU21NIYZ2/giphy.gif',
-    'https://media.giphy.com/media/26tn33aiTi1jkl6H6/giphy.gif',
-    'https://media.giphy.com/media/l0HlvtIPzPdt2usKs/giphy.gif',
-    'https://media.giphy.com/media/xT0GqH01ZbXikrxDlS/giphy.gif',
-    'https://media.giphy.com/media/3o6ozsIxg5legZigmc/giphy.gif',
-    'https://media.giphy.com/media/JltOMwYmi0VrO/giphy.gif',
-  ],
-  cheers: [
-    'https://media.giphy.com/media/xUOxfguTfXbNxjSAOc/giphy.gif',
-    'https://media.giphy.com/media/l0MYymPUZKvzYCg2Q/giphy.gif',
-    'https://media.giphy.com/media/JQNyk4xEfvzUY/giphy.gif',
-    'https://media.giphy.com/media/3o7btNa0RUYa5E7iiQ/giphy.gif',
-    'https://media.giphy.com/media/l0Iyl55kTeh71nTXy/giphy.gif',
-    'https://media.giphy.com/media/26tPplGWjN0xLybiU/giphy.gif',
-    'https://media.giphy.com/media/l2JIe6bKmZbtahYWA/giphy.gif',
-    'https://media.giphy.com/media/xTiTndDHV3GeIy6aNa/giphy.gif',
-  ],
-  cocktail: [
-    'https://media.giphy.com/media/xT9DPPHwWuHLTKUNy8/giphy.gif',
-    'https://media.giphy.com/media/l0MYD4mSCXlvHZ2XC/giphy.gif',
-    'https://media.giphy.com/media/26BRCVezhU1t5eENy/giphy.gif',
-    'https://media.giphy.com/media/xUPGcJi5PMXsRuBiCk/giphy.gif',
-    'https://media.giphy.com/media/l2JhL7jMhqQtQ0uWY/giphy.gif',
-    'https://media.giphy.com/media/xT0xeuOy2Fcl9vDGiA/giphy.gif',
-  ],
-  beer: [
-    'https://media.giphy.com/media/l0HlSNOxJB0MTGlXO/giphy.gif',
-    'https://media.giphy.com/media/xT9DPIlGnuHpr2yObC/giphy.gif',
-    'https://media.giphy.com/media/l0Ex6kAKKcjmpJoTC/giphy.gif',
-    'https://media.giphy.com/media/26xBIygOcC3bAFykw/giphy.gif',
-    'https://media.giphy.com/media/3o6UB6UOTPr9tDrjO0/giphy.gif',
-    'https://media.giphy.com/media/xT5LMKt8LqlHNlWobK/giphy.gif',
-  ],
-  wine: [
-    'https://media.giphy.com/media/xUPGcguWZHRC2HyBRe/giphy.gif',
-    'https://media.giphy.com/media/l2JhBUzgvUKQhrp32/giphy.gif',
-    'https://media.giphy.com/media/l0MYyv3g7wCxWJDe8/giphy.gif',
-    'https://media.giphy.com/media/3o7bu3XilJ5BOiSGic/giphy.gif',
-    'https://media.giphy.com/media/xT9IgFLBcm3Wi6l6iA/giphy.gif',
-    'https://media.giphy.com/media/26AHONQ79FdWZhAI0/giphy.gif',
-  ],
-  dance: [
-    'https://media.giphy.com/media/l0HlKrB02QY0f1mbm/giphy.gif',
-    'https://media.giphy.com/media/xThta7hbXNRRZuXBOw/giphy.gif',
-    'https://media.giphy.com/media/26tPplGWjN0xLybiU/giphy.gif',
-    'https://media.giphy.com/media/3o6Zt481isNVuQI1l6/giphy.gif',
-    'https://media.giphy.com/media/l0HlBO7eyXzSZkJri/giphy.gif',
-    'https://media.giphy.com/media/xThuWbwrw5Q6VfxRRK/giphy.gif',
-    'https://media.giphy.com/media/l2JhOVXFXNbKzzC0M/giphy.gif',
-    'https://media.giphy.com/media/l0Ex6kAKKcjmpJoTC/giphy.gif',
-  ],
-  celebrate: [
-    'https://media.giphy.com/media/3o6ozC18XKvOOEBBK0/giphy.gif',
-    'https://media.giphy.com/media/l0MYt5jPR6QX5pnqM/giphy.gif',
-    'https://media.giphy.com/media/26u4b45b8KlgAB7iM/giphy.gif',
-    'https://media.giphy.com/media/l3q2K5jinAlChoCLS/giphy.gif',
-    'https://media.giphy.com/media/xT0xezQGU5xCDJuCPe/giphy.gif',
-    'https://media.giphy.com/media/xUOxeZeYIzu0hkfxUY/giphy.gif',
-    'https://media.giphy.com/media/l0HlKghz8IvrQ8TYQ/giphy.gif',
-    'https://media.giphy.com/media/3o6ZsWQ8Vjjm1PMSUE/giphy.gif',
-  ],
+type CategoryKey = 'cats' | 'memes' | 'reactions' | 'greetings';
+
+// Curated, verified Giphy IDs (each URL returns 200 with real content, not the placeholder).
+const GIF_LIBRARY: Record<CategoryKey, string[]> = {
+  cats: [
+    'vFKqnCdLPNOKc','JIX9t2j0ZTN9S','yFQ0ywscgobJK','mlvseq9yvZhba','MDJ9IbxxvDUQM',
+    '3oriO0OEd9QIDdllqo','3o7TKUM3IgJBX2as9O','VbnUQpnihPSIgIXuZv','BzyTuYCmvSORqs1ABM',
+    '13CoXDiaCcCoyk','tXL4FHPSnVJ0A','10LKovKon8DENq','3o6Zt6ML6BklcajjsA','JVOfHDrfjxK4o',
+  ].map(gif),
+  memes: [
+    '3o7527pa7qs9kCG78A','l0HlBO7eyXzSZkJri','3o7TKSjRrfIPjeiVyM','3oz8xLd9DJq2l2VFtu',
+    'xT5LMHxhOfscxPfIfm','l0HlvtIPzPdt2usKs','xT9IgDEI1iZyb2wqo8','3ornk57KwDXf81rjWM',
+    'd3mlE7uhX8KFgEmY','xTiTnxpQ3ghPiB2Hp6','3o7TKr3nzbh5WgCFxe','l3q2K5jinAlChoCLS',
+    '3oz9ZE2Oo9zRC','g01ZnwAUvutuK8GIQn','111ebonMs90YLu',
+  ].map(gif),
+  reactions: [
+    '5VKbvrjxpVJCM','3oEjI105rmEC22CJFK','3o7abKhOpu0NwenH3O','1BXa2alBjrCXC',
+    'JER2en0ZRiGUE','d2lcHJTG5Tscg','xT0xezQGU5xCDJuCPe','QMHoU66sBXqqLqYvGO',
+    '14aUO0Mf7dWDXW','OPU6wzx8JrHna','3orieUe6ejxSFxYCXe','WsNbxuFkLi3IuGI9NU',
+    'YEL7FJP6ed008','l1J9EdzfOSgfyueLm','l0MYt5jPR6QX5pnqM','6nWhy3ulBL7GSCvKw6',
+  ].map(gif),
+  greetings: [
+    'LmNwrBhejkK9EFP504','H4uE6w9G1uK4M','LnQjpWaON8nhr21vNW','3o84U6421OOWegpQhq',
+    '3o7TKF1fSIs1R19B8k','EDt1m8p5hqXG8','3oEjHV0z8S7WM4MwnK','3o7TKtnuHOHHUjR38Y',
+    '3o84sq21TxDH6PyYms','xT9IgIc0lryrxvqVGM',
+  ].map(gif),
 };
 
-const ALL_GIFS: string[] = Array.from(new Set(Object.values(STICKER_LIBRARY).flat()));
+const CATEGORY_LABELS: Record<CategoryKey, Record<string, string>> = {
+  cats:      { ru: 'Котики',      en: 'Cats',      ua: 'Котики' },
+  memes:     { ru: 'Мемы',        en: 'Memes',     ua: 'Меми' },
+  reactions: { ru: 'Реакции',     en: 'Reactions', ua: 'Реакції' },
+  greetings: { ru: 'Приветствия', en: 'Greetings', ua: 'Вітання' },
+};
+
+const CATEGORIES: CategoryKey[] = ['cats', 'memes', 'reactions', 'greetings'];
+const ALL_GIFS: string[] = Array.from(new Set(CATEGORIES.flatMap(k => GIF_LIBRARY[k])));
 
 export default function ChatEmojiStickers({ onSelectEmoji, onSendSticker, onSendGif }: Props) {
   const { language } = useApp();
   const [activeTab, setActiveTab] = useState<'emoji' | 'stickers' | 'gifs'>('emoji');
   const [activeCat, setActiveCat] = useState(0);
   const [gifSearch, setGifSearch] = useState('');
-  const [gifs, setGifs] = useState<string[]>(ALL_GIFS);
-  const [gifLoading] = useState(false);
-  const [stickers, setStickers] = useState<string[]>(STICKER_LIBRARY.party);
-  const [stickerLoading] = useState(false);
-  const [stickerQuery, setStickerQuery] = useState<StickerQuery>('party');
+  const [stickerCategory, setStickerCategory] = useState<CategoryKey>('cats');
+  const [gifCategory, setGifCategory] = useState<CategoryKey | 'all'>('all');
 
-  const loadStickers = (query: StickerQuery) => {
-    setStickerQuery(query);
-    setStickers(STICKER_LIBRARY[query] || []);
-  };
+  const filteredGifs: string[] = (() => {
+    const base = gifCategory === 'all' ? ALL_GIFS : GIF_LIBRARY[gifCategory];
+    const q = gifSearch.trim().toLowerCase();
+    if (!q) return base;
+    const match = CATEGORIES.find(k =>
+      k.includes(q) ||
+      Object.values(CATEGORY_LABELS[k]).some(l => l.toLowerCase().includes(q))
+    );
+    return match ? GIF_LIBRARY[match] : base;
+  })();
 
-  const searchGifs = (query: string) => {
-    setGifSearch(query);
-    const q = query.trim().toLowerCase();
-    if (!q) { setGifs(ALL_GIFS); return; }
-    const matchedKey = (STICKER_QUERIES as readonly string[]).find(k => k.includes(q) || q.includes(k)) as StickerQuery | undefined;
-    setGifs(matchedKey ? STICKER_LIBRARY[matchedKey] : ALL_GIFS);
-  };
-
+  const catLabel = (k: CategoryKey) => CATEGORY_LABELS[k][language] || CATEGORY_LABELS[k].en;
 
   const tabs = [
     { key: 'emoji' as const, label: '😀' },
@@ -208,29 +170,36 @@ export default function ChatEmojiStickers({ onSelectEmoji, onSendSticker, onSend
       {activeTab === 'stickers' && (
         <div>
           <div className="flex gap-1 px-2 py-1.5 border-b border-border/20 overflow-x-auto scrollbar-hide">
-            {STICKER_QUERIES.map(q => (
+            {CATEGORIES.map(k => (
               <button
-                key={q}
-                onClick={() => { setStickerQuery(q); loadStickers(q); }}
-                className={`px-2.5 py-1 rounded-full text-[11px] font-medium whitespace-nowrap transition-colors ${stickerQuery === q ? 'bg-primary/20 text-primary' : 'bg-secondary/40 text-muted-foreground hover:bg-accent'}`}
+                key={k}
+                onClick={() => setStickerCategory(k)}
+                className={`px-2.5 py-1 rounded-full text-[11px] font-medium whitespace-nowrap transition-colors ${stickerCategory === k ? 'bg-primary/20 text-primary' : 'bg-secondary/40 text-muted-foreground hover:bg-accent'}`}
               >
-                {q}
+                {catLabel(k)}
               </button>
             ))}
           </div>
           <div className="p-2 grid grid-cols-4 gap-1.5 max-h-[180px] overflow-y-auto scrollbar-hide">
-            {stickerLoading ? (
-              <div className="col-span-4 text-center py-4 text-muted-foreground text-xs">{t('loading', language)}</div>
-            ) : stickers.length === 0 ? (
+            {GIF_LIBRARY[stickerCategory].length === 0 ? (
               <div className="col-span-4 text-center py-4 text-muted-foreground text-xs">{t('noResults', language)}</div>
             ) : (
-              stickers.map((url, i) => (
+              GIF_LIBRARY[stickerCategory].map((url, i) => (
                 <button
                   key={i}
                   onClick={() => onSendSticker(url)}
                   className="rounded-xl p-1.5 hover:bg-primary/10 transition-all flex items-center justify-center aspect-square"
                 >
-                  <img src={url} alt="sticker" className="max-w-full max-h-full object-contain" loading="lazy" />
+                  <img
+                    src={url}
+                    alt="sticker"
+                    className="max-w-full max-h-full object-contain"
+                    loading="lazy"
+                    onError={(ev) => {
+                      const btn = (ev.currentTarget as HTMLImageElement).parentElement;
+                      if (btn) (btn as HTMLElement).style.display = 'none';
+                    }}
+                  />
                 </button>
               ))
             )}
@@ -247,21 +216,49 @@ export default function ChatEmojiStickers({ onSelectEmoji, onSendSticker, onSend
               <input
                 type="text"
                 value={gifSearch}
-                onChange={e => { setGifSearch(e.target.value); searchGifs(e.target.value); }}
+                onChange={e => setGifSearch(e.target.value)}
                 placeholder={t('searchGif', language)}
                 className="w-full pl-8 pr-3 py-2 rounded-xl bg-secondary/30 border border-border text-xs placeholder:text-muted-foreground focus:outline-none focus:amber-border-glow transition-all"
               />
             </div>
           </div>
+          <div className="flex gap-1 px-2 pb-1.5 overflow-x-auto scrollbar-hide">
+            <button
+              onClick={() => setGifCategory('all')}
+              className={`px-2.5 py-1 rounded-full text-[11px] font-medium whitespace-nowrap transition-colors ${gifCategory === 'all' ? 'bg-primary/20 text-primary' : 'bg-secondary/40 text-muted-foreground hover:bg-accent'}`}
+            >
+              {language === 'en' ? 'All' : language === 'ua' ? 'Усі' : 'Все'}
+            </button>
+            {CATEGORIES.map(k => (
+              <button
+                key={k}
+                onClick={() => setGifCategory(k)}
+                className={`px-2.5 py-1 rounded-full text-[11px] font-medium whitespace-nowrap transition-colors ${gifCategory === k ? 'bg-primary/20 text-primary' : 'bg-secondary/40 text-muted-foreground hover:bg-accent'}`}
+              >
+                {catLabel(k)}
+              </button>
+            ))}
+          </div>
           <div className="p-2 grid grid-cols-3 gap-1.5 max-h-[180px] overflow-y-auto scrollbar-hide">
-            {gifLoading ? (
-              <div className="col-span-3 text-center py-4 text-muted-foreground text-xs">{t('loading', language)}</div>
-            ) : gifs.length === 0 ? (
+            {filteredGifs.length === 0 ? (
               <div className="col-span-3 text-center py-4 text-muted-foreground text-xs">{t('noResults', language)}</div>
             ) : (
-              gifs.map((url, i) => (
-                <button key={i} onClick={() => onSendGif(url)} className="rounded-lg overflow-hidden border border-border/30 hover:border-primary/30 transition-all">
-                  <img src={url} alt="gif" className="w-full h-20 object-cover" loading="lazy" />
+              filteredGifs.map((url, i) => (
+                <button
+                  key={i}
+                  onClick={() => onSendGif(url)}
+                  className="rounded-lg overflow-hidden border border-border/30 hover:border-primary/30 transition-all"
+                >
+                  <img
+                    src={url}
+                    alt="gif"
+                    className="w-full h-20 object-cover"
+                    loading="lazy"
+                    onError={(ev) => {
+                      const btn = (ev.currentTarget as HTMLImageElement).parentElement;
+                      if (btn) (btn as HTMLElement).style.display = 'none';
+                    }}
+                  />
                 </button>
               ))
             )}
