@@ -56,6 +56,7 @@ function AppRoutes() {
   }
 
   return (
+    <CallManager>
     <div className="min-h-screen bg-background dark">
       <Header />
       <main className="max-w-5xl mx-auto px-4 py-4 pb-24">
@@ -88,8 +89,10 @@ function AppRoutes() {
       <BugReportModal open={showBugModal} onClose={() => setShowBugModal(false)} />
       <BottomNav />
     </div>
+    </CallManager>
   );
 }
+
 
 const App = () => (
   <AppProvider>
