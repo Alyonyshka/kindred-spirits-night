@@ -405,6 +405,28 @@ translations.mustAcceptTerms = {
   ua: 'Необхідно прийняти умови',
 };
 
+// Voice call
+translations.voiceCall = { ru: 'Голосовой вызов', en: 'Voice call', ua: 'Голосовий виклик' };
+translations.callLocked = {
+  ru: 'Созвон доступен только после взаимного добавления в Избранное и одобрения встречи',
+  en: 'Calls are available only after mutual favorite and a confirmed meeting',
+  ua: 'Дзвінки доступні лише після взаємного додавання в Обрані та підтвердженої зустрічі',
+};
+translations.incomingCall = { ru: 'Входящий вызов', en: 'Incoming call', ua: 'Вхідний виклик' };
+translations.callAccept = { ru: 'Принять', en: 'Accept', ua: 'Прийняти' };
+translations.callDecline = { ru: 'Сбросить', en: 'Decline', ua: 'Скинути' };
+translations.callEnd = { ru: 'Завершить', en: 'End', ua: 'Завершити' };
+translations.callRinging = { ru: 'Вызов…', en: 'Ringing…', ua: 'Виклик…' };
+translations.callEnded = { ru: 'Звонок завершён', en: 'Call ended', ua: 'Дзвінок завершено' };
+translations.callDeclined = { ru: 'Звонок отклонён', en: 'Call declined', ua: 'Дзвінок відхилено' };
+translations.callBusy = { ru: 'Пользователь занят', en: 'User is busy', ua: 'Користувач зайнятий' };
+translations.callNoAnswer = { ru: 'Нет ответа', en: 'No answer', ua: 'Немає відповіді' };
+translations.mute = { ru: 'Выключить микрофон', en: 'Mute', ua: 'Вимкнути мікрофон' };
+translations.unmute = { ru: 'Включить микрофон', en: 'Unmute', ua: 'Увімкнути мікрофон' };
+translations.micUnavailable = { ru: 'Микрофон недоступен', en: 'Microphone unavailable', ua: 'Мікрофон недоступний' };
+
+
+
 export const interestKeys = [
   'activeSport', 'creativity', 'handicraft', 'cooking', 'gardening', 'travel',
   'intellectual', 'volunteering', 'collecting', 'technical', 'cultural', 'social', 'hookah'
