@@ -1,5 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
-import { X, Send, User, Image, Video, Mic, MicOff, Smile, Paperclip, Reply, Edit2, Sparkles, Beer, Forward, Check, MapPin } from 'lucide-react';
+import { X, Send, User, Image, Video, Mic, MicOff, Smile, Paperclip, Reply, Edit2, Sparkles, Beer, Forward, Check, MapPin, Phone } from 'lucide-react';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
+import { useCall } from '@/components/CallManager';
+import { useCallEligibility } from '@/hooks/useCallEligibility';
+
 import LocationMessage from './LocationMessage';
 import { useApp } from '@/contexts/AppContext';
 import { t } from '@/lib/i18n';
@@ -36,6 +40,9 @@ type ChatMediaTab = 'none' | 'emoji' | 'attach';
 export default function ChatWindow({ user: otherUser, onClose }: ChatWindowProps) {
   const { language, user: currentUser } = useApp();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const { startCall, callState } = useCall();
+  const { eligible: canCall } = useCallEligibility(otherUser.user_id);
+
   const [showAdventure, setShowAdventure] = useState(false);
   const [showBrudershaft, setShowBrudershaft] = useState(false);
   const [input, setInput] = useState('');
@@ -470,6 +477,30 @@ export default function ChatWindow({ user: otherUser, onClose }: ChatWindowProps
               {t(otherUser.online ? 'online' : 'offline', language)}
             </span>
           </div>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={() => {
+                  if (canCall && callState.phase === 'idle') startCall(otherUser);
+                  else if (!canCall) toast.info(t('callLocked', language));
+                }}
+                disabled={!canCall || callState.phase !== 'idle'}
+                className={`p-2 rounded-lg transition-colors group ${
+                  canCall ? 'hover:bg-accent' : 'opacity-40 cursor-not-allowed'
+                }`}
+                aria-label={t('voiceCall', language)}
+              >
+                <Phone
+                  size={20}
+                  className={canCall ? 'text-primary group-hover:animate-pulse' : 'text-muted-foreground'}
+                  style={canCall ? { filter: 'drop-shadow(0 0 4px hsl(var(--primary) / 0.5))' } : undefined}
+                />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="max-w-[220px] text-xs">
+              {canCall ? t('voiceCall', language) : t('callLocked', language)}
+            </TooltipContent>
+          </Tooltip>
           <button
             onClick={() => setShowBrudershaft(true)}
             className="p-2 rounded-lg hover:bg-accent transition-colors group"
@@ -478,6 +509,7 @@ export default function ChatWindow({ user: otherUser, onClose }: ChatWindowProps
           >
             <Beer size={20} className="text-primary group-hover:animate-pulse" style={{ filter: 'drop-shadow(0 0 4px hsl(var(--primary) / 0.5))' }} />
           </button>
+
           <button
             onClick={() => setShowAdventure(true)}
             className="p-2 rounded-lg hover:bg-accent transition-colors group"
