@@ -477,6 +477,30 @@ export default function ChatWindow({ user: otherUser, onClose }: ChatWindowProps
               {t(otherUser.online ? 'online' : 'offline', language)}
             </span>
           </div>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={() => {
+                  if (canCall && callState.phase === 'idle') startCall(otherUser);
+                  else if (!canCall) toast.info(t('callLocked', language));
+                }}
+                disabled={!canCall || callState.phase !== 'idle'}
+                className={`p-2 rounded-lg transition-colors group ${
+                  canCall ? 'hover:bg-accent' : 'opacity-40 cursor-not-allowed'
+                }`}
+                aria-label={t('voiceCall', language)}
+              >
+                <Phone
+                  size={20}
+                  className={canCall ? 'text-primary group-hover:animate-pulse' : 'text-muted-foreground'}
+                  style={canCall ? { filter: 'drop-shadow(0 0 4px hsl(var(--primary) / 0.5))' } : undefined}
+                />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="max-w-[220px] text-xs">
+              {canCall ? t('voiceCall', language) : t('callLocked', language)}
+            </TooltipContent>
+          </Tooltip>
           <button
             onClick={() => setShowBrudershaft(true)}
             className="p-2 rounded-lg hover:bg-accent transition-colors group"
@@ -485,6 +509,7 @@ export default function ChatWindow({ user: otherUser, onClose }: ChatWindowProps
           >
             <Beer size={20} className="text-primary group-hover:animate-pulse" style={{ filter: 'drop-shadow(0 0 4px hsl(var(--primary) / 0.5))' }} />
           </button>
+
           <button
             onClick={() => setShowAdventure(true)}
             className="p-2 rounded-lg hover:bg-accent transition-colors group"
