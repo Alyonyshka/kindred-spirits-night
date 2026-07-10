@@ -1,5 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
-import { X, Send, User, Image, Video, Mic, MicOff, Smile, Paperclip, Reply, Edit2, Sparkles, Beer, Forward, Check, MapPin } from 'lucide-react';
+import { X, Send, User, Image, Video, Mic, MicOff, Smile, Paperclip, Reply, Edit2, Sparkles, Beer, Forward, Check, MapPin, Phone } from 'lucide-react';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
+import { useCall } from '@/components/CallManager';
+import { useCallEligibility } from '@/hooks/useCallEligibility';
+
 import LocationMessage from './LocationMessage';
 import { useApp } from '@/contexts/AppContext';
 import { t } from '@/lib/i18n';
