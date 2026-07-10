@@ -40,6 +40,9 @@ type ChatMediaTab = 'none' | 'emoji' | 'attach';
 export default function ChatWindow({ user: otherUser, onClose }: ChatWindowProps) {
   const { language, user: currentUser } = useApp();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const { startCall, callState } = useCall();
+  const { eligible: canCall } = useCallEligibility(otherUser.user_id);
+
   const [showAdventure, setShowAdventure] = useState(false);
   const [showBrudershaft, setShowBrudershaft] = useState(false);
   const [input, setInput] = useState('');
