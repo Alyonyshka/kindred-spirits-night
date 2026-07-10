@@ -8,6 +8,8 @@ import { AppProvider, useApp } from "@/contexts/AppContext";
 import Header from "@/components/Header";
 import BottomNav from "@/components/BottomNav";
 import BugReportModal from "@/components/BugReportModal";
+import CallManager from "@/components/CallManager";
+
 import Index from "./pages/Index";
 import Messages from "./pages/Messages";
 import Favorites from "./pages/Favorites";
