@@ -373,18 +373,34 @@ export default function ChatWindow({ user: otherUser, onClose }: ChatWindowProps
           if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
           const duration = Math.max(1, Math.floor((Date.now() - recordingStartRef.current) / 1000));
           const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-          const url = URL.createObjectURL(blob);
           const mins = Math.floor(duration / 60);
           const secs = duration % 60;
 
           if (currentUser) {
-            await supabase.from('messages').insert({
-              sender_id: currentUser.id,
-              receiver_id: otherUser.user_id,
-              content: `🎤 ${mins}:${secs.toString().padStart(2, '0')}`,
-              type: 'voice',
-              media_url: url,
-            });
+            try {
+              const path = `${currentUser.id}/${Date.now()}-${crypto.randomUUID()}.webm`;
+              const { error: upErr } = await supabase.storage
+                .from('voice-messages')
+                .upload(path, blob, { contentType: 'audio/webm', upsert: false });
+              if (upErr) throw upErr;
+
+              // Private bucket: generate a long-lived signed URL to persist in the message.
+              const { data: signed, error: signErr } = await supabase.storage
+                .from('voice-messages')
+                .createSignedUrl(path, 60 * 60 * 24 * 365 * 10); // 10 years
+              if (signErr || !signed) throw signErr;
+
+              await supabase.from('messages').insert({
+                sender_id: currentUser.id,
+                receiver_id: otherUser.user_id,
+                content: `🎤 ${mins}:${secs.toString().padStart(2, '0')}`,
+                type: 'voice',
+                media_url: signed.signedUrl,
+              });
+            } catch (err) {
+              console.error('Voice upload failed', err);
+              toast.error('Не удалось отправить голосовое сообщение');
+            }
           }
           setRecordingTime(0);
         };
